@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Open jobs | QuickCraft{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Open jobs</h1>
+
+{# GET, not POST: a filter only reads data, and the URL can be bookmarked. #}
+<form class="row g-2 mb-4" method="get">
+  <div class="col-12 col-sm-5">
+    <label class="visually-hidden" for="trade">Trade</label>
+    <select class="form-select" id="trade" name="trade">
+      <option value="">All my trades</option>
+      {% for trade in my_trades %}
+        <option value="{{ trade }}" {{ "selected" if trade == selected_trade }}>{{ trade }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-5">
+    <label class="visually-hidden" for="city">City</label>
+    <select class="form-select" id="city" name="city">
+      <option value="">All my cities</option>
+      {% for city in my_cities %}
+        <option value="{{ city }}" {{ "selected" if city | lower == selected_city | lower }}>{{ city }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-2">
+    <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
+  </div>
+</form>
+
+{% for job in jobs %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2 class="h5">
+        <a class="stretched-link text-decoration-none" href="{{ url_for('jobs.detail', job_id=job.id) }}">{{ job.title }}</a>
+        {% if job.urgency == "urgent" %}<span class="badge text-bg-danger ms-1">Urgent</span>{% endif %}
+      </h2>
+      <p class="text-body-secondary mb-0">
+        {{ job.city }} &middot; {{ job.trades | map(attribute="trade") | join(", ") }}
+      </p>
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">No open jobs match your trade and service area right now.</p>
+{% endfor %}
+{% endblock %}
