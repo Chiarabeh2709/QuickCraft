@@ -66,3 +66,15 @@ With a disk, each deploy has a short downtime and the service cannot scale to se
 The app creates missing tables at startup, but it does not change existing ones.
 On a Free instance the database starts fresh anyway. With a disk, you have to update or
 replace the database file yourself.
+
+## Reset your local database
+
+After a model change, or to start clean on your own machine:
+
+```bash
+flask reset-db
+```
+
+This deletes all local data, recreates the tables and creates the admin from `ADMIN_EMAIL`
+and `ADMIN_PASSWORD`. It refuses to run when the `RENDER` environment variable is set, so it
+cannot wipe the live database.

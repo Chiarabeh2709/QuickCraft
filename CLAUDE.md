@@ -41,6 +41,7 @@ Customers and tradespeople have an `email_verified` field (simulated). We do NOT
 - Passwords are always hashed.
 - A customer's phone number and address stay hidden from a tradesperson until the customer has accepted that tradesperson's quote or booked their slot. Never show them on the job list or job detail page before that.
 - Collect only the data we need (data minimisation, GDPR): NO ID upload for customers; tradespeople give a qualification reference number only, no document uploads.
+- `flask reset-db` wipes and recreates the local database after model changes; it refuses to run when `RENDER` is set, and that guard must stay.
 - Keep functions small.
 - Write short comments that explain the why, not the what.
 
