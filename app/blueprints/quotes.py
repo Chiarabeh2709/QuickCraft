@@ -91,7 +91,7 @@ def trade_filled(job_trade):
 
 def quotable_trades(job):
     """The trades on this job that the tradesperson offers and nobody has won yet."""
-    my_trades = {entry.trade for entry in current_user.profile.trades}
+    my_trades = current_user.profile.approved_trades
     return [job_trade for job_trade in job.trades if job_trade.trade in my_trades and not trade_filled(job_trade)]
 
 

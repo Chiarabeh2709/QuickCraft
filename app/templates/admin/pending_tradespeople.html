@@ -35,4 +35,33 @@
 {% else %}
   <p class="text-body-secondary">Nobody is waiting for approval.</p>
 {% endfor %}
+
+<h2 class="h3 mt-5 mb-3">Pending trades</h2>
+<p class="text-body-secondary">Trades added by tradespeople who are already verified.</p>
+
+{% for entry in pending_trades %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h3 class="h5">{{ entry.profile.company_name }}: {{ entry.trade }}</h3>
+      <dl class="row mb-3">
+        <dt class="col-sm-4">Tradesperson</dt>
+        <dd class="col-sm-8">{{ entry.profile.user.name }} ({{ entry.profile.user.email }})</dd>
+        <dt class="col-sm-4">Qualification reference</dt>
+        <dd class="col-sm-8">{{ entry.profile.qualification_reference }}</dd>
+      </dl>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('admin.approve_trade', trade_id=entry.id) }}">
+          {{ csrf_field() }}
+          <button class="btn btn-success" type="submit">Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject_trade', trade_id=entry.id) }}">
+          {{ csrf_field() }}
+          <button class="btn btn-outline-danger" type="submit">Reject</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">No trades are waiting for approval.</p>
+{% endfor %}
 {% endblock %}
