@@ -22,9 +22,29 @@
           {# Disabled until the routes exist: url_for() would crash on a missing endpoint. #}
           <li class="nav-item"><a class="nav-link disabled" aria-disabled="true">Post a job</a></li>
         </ul>
-        <ul class="navbar-nav">
-          <li class="nav-item"><a class="nav-link disabled" aria-disabled="true">Log in</a></li>
-          <li class="nav-item"><a class="nav-link disabled" aria-disabled="true">Sign up</a></li>
+        <ul class="navbar-nav align-items-md-center">
+          {% if current_user.is_authenticated %}
+            {% if current_user.role == "admin" %}
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.pending_tradespeople') }}">Pending tradespeople</a></li>
+            {% endif %}
+            <li class="nav-item"><span class="navbar-text me-md-3">{{ current_user.name }}</span></li>
+            <li class="nav-item">
+              {# A form, not a link: logging out changes state, so it must be a POST with a CSRF token. #}
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-link nav-link" type="submit">Log out</button>
+              </form>
+            </li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Log in</a></li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Sign up</a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{{ url_for('auth.signup_customer') }}">As a customer</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.signup_tradesperson') }}">As a tradesperson</a></li>
+              </ul>
+            </li>
+          {% endif %}
         </ul>
       </div>
     </div>
@@ -34,6 +54,13 @@
     {% for category, message in get_flashed_messages(with_categories=true) %}
       <div class="alert alert-{{ 'info' if category == 'message' else category }}" role="alert">{{ message }}</div>
     {% endfor %}
+    {% if current_user.is_authenticated and current_user.role == "tradesperson" %}
+      {% if current_user.verification_status == "pending" %}
+        <div class="alert alert-info" role="alert">Your account is waiting for approval. You can see jobs and send quotes once we have checked your details.</div>
+      {% elif current_user.verification_status == "rejected" %}
+        <div class="alert alert-warning" role="alert">We could not approve your account, so you cannot see jobs or send quotes.</div>
+      {% endif %}
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 

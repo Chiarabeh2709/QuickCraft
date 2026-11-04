@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}Pending tradespeople | QuickCraft{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Pending tradespeople</h1>
+
+{% for person in tradespeople %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2 class="h5">{{ person.profile.company_name }}</h2>
+      <dl class="row mb-3">
+        <dt class="col-sm-4">Contact</dt>
+        <dd class="col-sm-8">{{ person.name }} ({{ person.email }})</dd>
+        <dt class="col-sm-4">Trade</dt>
+        <dd class="col-sm-8">{{ person.profile.trades | map(attribute="trade") | join(", ") }}</dd>
+        <dt class="col-sm-4">Service area</dt>
+        <dd class="col-sm-8">{{ person.profile.service_area }}</dd>
+        <dt class="col-sm-4">Qualification reference</dt>
+        <dd class="col-sm-8">{{ person.profile.qualification_reference }}</dd>
+      </dl>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('admin.approve', user_id=person.id) }}">
+          {{ csrf_field() }}
+          <button class="btn btn-success" type="submit">Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject', user_id=person.id) }}">
+          {{ csrf_field() }}
+          <button class="btn btn-outline-danger" type="submit">Reject</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">Nobody is waiting for approval.</p>
+{% endfor %}
+{% endblock %}

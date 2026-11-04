@@ -36,14 +36,14 @@ def test_app_refuses_to_start_without_secret_key():
         create_app(NoKey)
 
 
-def test_password_is_stored_hashed(app):
+def test_password_is_stored_hashed(app_ctx):
     user = make_user()
     assert user.password_hash != "secret"
     assert user.check_password("secret")
     assert not user.check_password("wrong")
 
 
-def test_new_user_has_unverified_email(app):
+def test_new_user_has_unverified_email(app_ctx):
     assert make_user().email_verified is False
 
 
@@ -56,19 +56,19 @@ def test_new_user_has_unverified_email(app):
         (ROLE_CUSTOMER, VERIFICATION_VERIFIED, False),
     ],
 )
-def test_is_verified_tradesperson(app, role, status, expected):
+def test_is_verified_tradesperson(app_ctx, role, status, expected):
     user = make_user(role=role, verification_status=status)
     assert user.is_verified_tradesperson is expected
 
 
-def test_database_rejects_unknown_foreign_key(app):
+def test_database_rejects_unknown_foreign_key(app_ctx):
     # Proves the SQLite foreign key switch in extensions.py is really on.
     db.session.add(Job(customer_id=999, city="Berlin", description="x", urgency="normal"))
     with pytest.raises(IntegrityError):
         db.session.commit()
 
 
-def test_database_rejects_stars_out_of_range(app):
+def test_database_rejects_stars_out_of_range(app_ctx):
     customer = make_user()
     tradesperson = make_user(role=ROLE_TRADESPERSON, email="b@example.com")
     job = make_job(customer)
@@ -77,7 +77,7 @@ def test_database_rejects_stars_out_of_range(app):
         db.session.commit()
 
 
-def test_database_rejects_second_review(app):
+def test_database_rejects_second_review(app_ctx):
     customer = make_user()
     tradesperson = make_user(role=ROLE_TRADESPERSON, email="b@example.com")
     job = make_job(customer)

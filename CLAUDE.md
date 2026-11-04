@@ -8,7 +8,8 @@ This is a course project. It must be deployed at a public URL, and every team me
 
 - Python, Flask, Jinja templates, Bootstrap
 - SQLite via SQLAlchemy
-- Flask-Login for authentication
+- Flask-Login for authentication, Flask-WTF only for CSRF protection
+- gunicorn on Render for deployment (see `DEPLOY.md`)
 - pytest for tests
 - No JavaScript frameworks
 
@@ -18,7 +19,7 @@ This is a course project. It must be deployed at a public URL, and every team me
 - **tradesperson**: has a `verification_status` of `pending`, `verified` or `rejected`. Only verified tradespeople can see jobs and send quotes.
 - **admin**: approves or rejects tradespeople.
 
-Customers and tradespeople have an `email_verified` field (simulated). We do NOT send real emails: the seed script sets it, and a simple "confirm email" page may flip it for the demo. Unverified customers cannot post jobs.
+Customers and tradespeople have an `email_verified` field (simulated). We do NOT send real emails: the seed script sets it, and a simple "confirm email" page may flip it for the demo. Unverified customers cannot post jobs: every job-posting route must use `confirmed_customer_required` from `decorators.py`.
 
 ## Features
 

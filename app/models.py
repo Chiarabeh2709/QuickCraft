@@ -21,6 +21,9 @@ QUOTE_PENDING = "pending"
 QUOTE_ACCEPTED = "accepted"
 QUOTE_REJECTED = "rejected"
 
+# A fixed list, because free text ("Plumber", "plumbing") could never be matched to jobs.
+TRADES = ("Carpenter", "Electrician", "Painter", "Plumber", "Roofer", "Tiler")
+
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -64,9 +67,29 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+def normalise_email(email):
+    # So Anna@example.com and anna@example.com cannot become two accounts.
+    return email.strip().lower()
+
+
+def find_user_by_email(email):
+    return db.session.scalar(db.select(User).filter_by(email=normalise_email(email)))
+
+
+def ensure_admin(email, password):
+    # Runs at every startup: the free Render plan has no shell and loses its database on restart.
+    if not email or not password or find_user_by_email(email):
+        return
+    admin = User(email=normalise_email(email), name="Admin", role=ROLE_ADMIN, email_verified=True)
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
+
+
 class TradespersonProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey("user.id"), unique=True, nullable=False)
+    company_name = db.Column(db.String(120), nullable=False)
     # A reference number only: we deliberately store no uploaded documents (GDPR).
     qualification_reference = db.Column(db.String(50))
     service_area = db.Column(db.String(120))

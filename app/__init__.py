@@ -1,7 +1,7 @@
-from flask import Flask
+from flask import Flask, render_template
 
 from app.blueprints import admin, auth, bookings, jobs, main, projects, quotes, reviews
-from app.extensions import db, login_manager
+from app.extensions import csrf, db, login_manager
 from config import Config
 
 
@@ -15,14 +15,22 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     for module in (main, auth, jobs, quotes, bookings, projects, reviews, admin):
         app.register_blueprint(module.bp)
 
+    app.register_error_handler(403, forbidden)
+
     with app.app_context():
         # Imported here so SQLAlchemy knows every table before creating them.
-        from app import models  # noqa: F401
+        from app import models
 
         db.create_all()
+        models.ensure_admin(app.config["ADMIN_EMAIL"], app.config["ADMIN_PASSWORD"])
 
     return app
+
+
+def forbidden(_error):
+    return render_template("403.html"), 403

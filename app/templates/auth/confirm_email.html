@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}Confirm your email | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="narrow-form">
+  <h1 class="h3 mb-3">Confirm your email</h1>
+  <p>Please confirm that <strong>{{ current_user.email }}</strong> is your email address.</p>
+  <p class="text-body-secondary">This is a demo, so we don't send a real email. The button below does the confirmation directly.</p>
+  <form method="post">
+    {{ csrf_field() }}
+    <button class="btn btn-primary w-100" type="submit">Confirm my email</button>
+  </form>
+</div>
+{% endblock %}

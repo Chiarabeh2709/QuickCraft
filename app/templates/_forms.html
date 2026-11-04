@@ -1,0 +1,23 @@
+{# Import with "with context" so these macros can read request.form. #}
+
+{% macro csrf_field() %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
+{# Refills the value after a failed submit, so people do not have to retype everything. #}
+{% macro text_field(name, label, type="text", autocomplete="off", maxlength=120) %}
+  <div class="mb-3">
+    <label class="form-label" for="{{ name }}">{{ label }}</label>
+    <input class="form-control" id="{{ name }}" name="{{ name }}" type="{{ type }}" required
+           maxlength="{{ maxlength }}" autocomplete="{{ autocomplete }}" value="{{ request.form.get(name, '') }}">
+  </div>
+{% endmacro %}
+
+{# Never refilled: a password must not be sent back in the page. #}
+{% macro password_field(autocomplete, hint="") %}
+  <div class="mb-3">
+    <label class="form-label" for="password">Password</label>
+    <input class="form-control" id="password" name="password" type="password" required autocomplete="{{ autocomplete }}">
+    {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
+  </div>
+{% endmacro %}

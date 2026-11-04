@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field, text_field, password_field with context %}
+
+{% block title %}Log in | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="narrow-form">
+  <h1 class="h3 mb-3">Log in</h1>
+  <form method="post">
+    {{ csrf_field() }}
+    {{ text_field("email", "Email", type="email", autocomplete="email", maxlength=255) }}
+    {{ password_field("current-password") }}
+    <button class="btn btn-primary w-100" type="submit">Log in</button>
+  </form>
+  <p class="mt-3 text-body-secondary">
+    New here? Sign up as a <a href="{{ url_for('auth.signup_customer') }}">customer</a>
+    or a <a href="{{ url_for('auth.signup_tradesperson') }}">tradesperson</a>.
+  </p>
+</div>
+{% endblock %}

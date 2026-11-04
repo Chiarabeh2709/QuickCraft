@@ -8,6 +8,12 @@
   <p class="lead text-body-secondary mx-auto" style="max-width: 36rem">
     Describe your job, compare quotes from verified tradespeople and pick whoever can start soonest.
   </p>
+  {% if not current_user.is_authenticated %}
+    <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-4">
+      <a class="btn btn-primary btn-lg" href="{{ url_for('auth.signup_customer') }}">I need a tradesperson</a>
+      <a class="btn btn-outline-primary btn-lg" href="{{ url_for('auth.signup_tradesperson') }}">I am a tradesperson</a>
+    </div>
+  {% endif %}
 </section>
 
 <section class="row g-3 pb-5">

@@ -1,4 +1,9 @@
 /* Only what Bootstrap does not already cover. */
+.narrow-form {
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
 .step-number {
   display: inline-flex;
   align-items: center;
