@@ -74,7 +74,15 @@ def test_only_customers_can_post_job_even_if_confirmed(client, make_user, login,
     ],
 )
 def test_signup_goes_to_confirm_page_unconfirmed(app, client, signup_url, form):
-    account = {"name": "Test", "email": EMAIL, "password": "correct-horse"}
+    account = {
+        "name": "Test",
+        "email": EMAIL,
+        "password": "correct-horse",
+        "phone": "+49 170 5550123",
+        "street": "Hauptstrasse 12",
+        "postal_code": "10115",
+        "city": "Berlin",
+    }
     response = client.post(signup_url, data={**account, **form}, follow_redirects=True)
     assert response.request.path == CONFIRM_URL
     assert b"Confirm my email" in response.data

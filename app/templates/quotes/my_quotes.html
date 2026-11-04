@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}My quotes | QuickCraft{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">My quotes</h1>
+
+{% for quote in quotes %}
+  {% set job = quote.job_trade.job %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <h2 class="h5">{{ job.title }}</h2>
+        <span class="badge text-bg-{{ {'accepted': 'success', 'rejected': 'secondary'}.get(quote.status, 'primary') }}">
+          {{ quote.status | capitalize }}
+        </span>
+      </div>
+      <p class="text-body-secondary mb-2">
+        {{ quote.job_trade.trade }} &middot; {{ job.city }} &middot; Job is {{ job.status | replace("_", " ") }}
+      </p>
+      <p class="mb-2">&euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start.strftime("%d %b %Y") }}</p>
+      {% if quote.message %}<p class="mb-3" style="white-space: pre-line">{{ quote.message }}</p>{% endif %}
+      {% if quote.status == "pending" %}
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('quotes.edit', quote_id=quote.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('quotes.withdraw', quote_id=quote.id) }}">
+            {{ csrf_field() }}
+            <button class="btn btn-outline-danger btn-sm" type="submit">Withdraw</button>
+          </form>
+        </div>
+      {% elif quote.status == "accepted" %}
+        {# Contact data stays on the job page, so its privacy rule lives in one place only. #}
+        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.detail', job_id=job.id) }}">Job and contact</a>
+      {% endif %}
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">You have not sent a quote yet.</p>
+{% endfor %}
+{% endblock %}

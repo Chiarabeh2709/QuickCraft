@@ -16,6 +16,8 @@ VERIFICATION_REJECTED = "rejected"
 JOB_OPEN = "open"
 JOB_IN_PROGRESS = "in_progress"
 JOB_DONE = "done"
+# A cancelled job keeps its row, so quotes and history stay intact and the customer can still see it.
+JOB_CANCELLED = "cancelled"
 
 QUOTE_PENDING = "pending"
 QUOTE_ACCEPTED = "accepted"
@@ -38,9 +40,10 @@ class User(UserMixin, db.Model):
     # Only tradespeople have a status. Empty never counts as verified, so the safe case is the default.
     verification_status = db.Column(db.String(20))
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
-    # Private: stay hidden from a tradesperson until a quote is accepted or a slot is booked.
+    # Private. A customer's stay hidden from a tradesperson until a quote is accepted or a slot is booked;
+    # a tradesperson's never appear on a public profile or in search.
     phone = db.Column(db.String(30))
-    address = db.Column(db.String(255))
+    address = db.Column(db.String(255))  # One line: "street, postal code city"
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     profile = db.relationship(
@@ -119,6 +122,8 @@ class AvailabilitySlot(db.Model):
 class Job(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    # The default keeps code that creates a job without a title working; the posting form always requires one.
+    title = db.Column(db.String(120), nullable=False, default="Untitled job")
     city = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text, nullable=False)
     urgency = db.Column(db.String(20), nullable=False)

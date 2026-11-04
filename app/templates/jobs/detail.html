@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }} | QuickCraft{% endblock %}
+
+{% block content %}
+<p><a href="{{ url_for('jobs.job_list') }}">&larr; All open jobs</a></p>
+
+<h1 class="h3">
+  {{ job.title }}
+  {% if job.urgency == "urgent" %}<span class="badge text-bg-danger ms-1">Urgent</span>{% endif %}
+</h1>
+<p class="text-body-secondary">
+  {{ job.city }} &middot; {{ job.trades | map(attribute="trade") | join(", ") }}
+</p>
+<p style="white-space: pre-line">{{ job.description }}</p>
+{% if job.status == "open" %}
+  <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
+{% endif %}
+
+<h2 class="h5 mt-4">Customer contact</h2>
+{# Phone and address are only rendered inside this branch, so they cannot leak into the page by accident. #}
+{% if show_contact %}
+  <dl class="row">
+    <dt class="col-sm-3">Name</dt>
+    <dd class="col-sm-9">{{ job.customer.name }}</dd>
+    <dt class="col-sm-3">Phone</dt>
+    <dd class="col-sm-9">{{ job.customer.phone or "Not given" }}</dd>
+    <dt class="col-sm-3">Address</dt>
+    <dd class="col-sm-9">{{ job.customer.address or "Not given" }}</dd>
+  </dl>
+{% else %}
+  <p class="text-body-secondary">
+    The customer's phone number and address are shared once they accept your quote or book your slot.
+  </p>
+{% endif %}
+{% endblock %}
