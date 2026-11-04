@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Project · QuickCraft{% endblock %}
+{% block content %}
+<h1>{{ project.job.description }}</h1>
+<p class="text-muted">{{ project.job.city }} · shared project timeline</p>
+
+<h2 class="h4 mt-4">Timeline</h2>
+{% if project.schedules %}
+  <div class="list-group mb-4">
+    {% for schedule in project.schedules %}
+      <div class="list-group-item">
+        <strong>{{ schedule.job_trade.trade }}</strong> — {{ schedule.tradesperson.name }}<br>
+        {{ schedule.start_date.strftime('%Y-%m-%d') }} to {{ schedule.end_date.strftime('%Y-%m-%d') }}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}<p>No dates proposed yet.</p>{% endif %}
+
+{% if current_user.role == "tradesperson" %}
+  <h2 class="h4">Propose your dates</h2>
+  <form method="post" action="{{ url_for('projects.propose_schedule', project_id=project.id) }}" class="row g-2 mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-4"><label class="form-label" for="start_date">Start</label><input class="form-control" type="date" id="start_date" name="start_date" required></div>
+    <div class="col-md-4"><label class="form-label" for="end_date">End</label><input class="form-control" type="date" id="end_date" name="end_date" required></div>
+    <div class="col-md-4 align-self-end"><button class="btn btn-primary" type="submit">Save dates</button></div>
+  </form>
+{% endif %}
+
+<h2 class="h4">Comments</h2>
+{% for comment in project.comments %}<p><strong>{{ comment.author.name }}</strong>: {{ comment.body }}</p>{% else %}<p>No comments yet.</p>{% endfor %}
+<form method="post" action="{{ url_for('projects.add_comment', project_id=project.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="form-label" for="body">Add a comment</label>
+  <textarea class="form-control mb-2" id="body" name="body" required></textarea>
+  <button class="btn btn-secondary" type="submit">Comment</button>
+</form>
+{% endblock %}

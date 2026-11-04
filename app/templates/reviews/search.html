@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Tradespeople · QuickCraft{% endblock %}
+{% block content %}
+<h1>Tradespeople</h1>
+<form method="get" class="mb-4"><label class="form-label" for="q">Search by name</label><div class="input-group"><input class="form-control" id="q" name="q" value="{{ search }}"><button class="btn btn-primary">Search</button></div></form>
+<div class="list-group">
+  {% for person in people %}
+    <a class="list-group-item list-group-item-action" href="{{ url_for('reviews.tradesperson_profile', tradesperson_id=person.id) }}">
+      <strong>{{ person.name }}</strong> · Rating: {{ ratings[person.id] if ratings[person.id] is not none else 'No ratings yet' }}
+    </a>
+  {% else %}<p>No tradespeople found.</p>{% endfor %}
+</div>
+{% endblock %}

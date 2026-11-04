@@ -195,6 +195,21 @@ class Project(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     comments = db.relationship("ProjectComment", backref="project", cascade="all, delete-orphan")
+    schedules = db.relationship("ProjectSchedule", backref="project", cascade="all, delete-orphan")
+
+
+class ProjectSchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.ForeignKey("project.id"), nullable=False)
+    job_trade_id = db.Column(db.ForeignKey("job_trade.id"), nullable=False)
+    tradesperson_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+
+    tradesperson = db.relationship("User")
+    job_trade = db.relationship("JobTrade")
+
+    __table_args__ = (db.UniqueConstraint("project_id", "job_trade_id"),)
 
 
 class ProjectComment(db.Model):
