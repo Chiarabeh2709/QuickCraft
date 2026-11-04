@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}Edit my profile | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="narrow-form">
+  <h1 class="h3 mb-3">Edit my profile</h1>
+  <p class="text-body-secondary">{{ profile.company_name }}</p>
+  <form method="post">
+    {{ csrf_field() }}
+    <div class="mb-3">
+      <label class="form-label" for="description">Short description</label>
+      <textarea class="form-control{{ ' is-invalid' if errors.get('description') }}" id="description" name="description"
+                rows="5" maxlength="1000">{{ description }}</textarea>
+      {% if errors.get("description") %}<div class="invalid-feedback">{{ errors.get("description") }}</div>{% endif %}
+    </div>
+    <fieldset class="mb-3">
+      <legend class="form-label fs-6">Your trades</legend>
+      {% for trade in trades %}
+        <div class="form-check">
+          <input class="form-check-input{{ ' is-invalid' if errors.get('trades') }}" type="checkbox" id="trade-{{ trade }}"
+                 name="trades" value="{{ trade }}" {{ "checked" if trade in chosen_trades }}>
+          <label class="form-check-label" for="trade-{{ trade }}">
+            {{ trade }}
+            {% if trade_status.get(trade) == "pending" %}
+              <span class="badge text-bg-warning ms-1">waiting for approval</span>
+            {% elif trade_status.get(trade) == "rejected" %}
+              <span class="badge text-bg-danger ms-1">rejected</span>
+            {% endif %}
+          </label>
+        </div>
+      {% endfor %}
+      <div class="form-text">An admin checks each new trade before it counts for jobs and search.</div>
+      {# d-block: Bootstrap only shows this message right after an invalid input, and here it follows a group. #}
+      {% if errors.get("trades") %}<div class="invalid-feedback d-block">{{ errors.get("trades") }}</div>{% endif %}
+    </fieldset>
+    <div class="mb-3">
+      <label class="form-label" for="service_area">City or service area</label>
+      <input class="form-control{{ ' is-invalid' if errors.get('service_area') }}" id="service_area" name="service_area"
+             type="text" required maxlength="120" value="{{ service_area }}">
+      {% if errors.get("service_area") %}<div class="invalid-feedback">{{ errors.get("service_area") }}</div>{% endif %}
+      <div class="form-text">Separate several cities with commas, for example: Berlin, Potsdam.</div>
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Save</button>
+  </form>
+  <p class="mt-3"><a href="{{ url_for('profiles.detail', profile_id=profile.id) }}">Back to my profile</a></p>
+</div>
+{% endblock %}

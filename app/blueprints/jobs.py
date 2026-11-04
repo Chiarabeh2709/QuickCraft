@@ -125,7 +125,7 @@ def service_cities(profile):
 
 def matching_jobs_query(profile, trade=None, city=None):
     """Open jobs that need one of the tradesperson's trades in one of their cities."""
-    trades = [entry.trade for entry in profile.trades] if profile else []
+    trades = profile.approved_trades if profile else []
     cities = service_cities(profile) if profile else []
     # A filter only narrows the list, so choosing a trade or city you do not serve gives no jobs.
     if trade:
@@ -166,7 +166,7 @@ def job_list():
     return render_template(
         "jobs/list.html",
         jobs=jobs,
-        my_trades=[entry.trade for entry in profile.trades] if profile else [],
+        my_trades=profile.approved_trades if profile else [],
         my_cities=service_cities(profile) if profile else [],
         selected_trade=trade,
         selected_city=city,

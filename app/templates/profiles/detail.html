@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.company_name }} | QuickCraft{% endblock %}
+
+{# Never use profile.user here: phone and address must not appear on this page. #}
+{% block content %}
+<h1 class="h3">
+  {{ profile.company_name }}
+  <span class="badge text-bg-success ms-1">Verified</span>
+</h1>
+<p class="text-body-secondary">
+  {% if profile.approved_trades %}{{ profile.approved_trades | join(", ") }} &middot; {% endif %}{{ profile.service_area }}
+</p>
+
+{# Only the owner may see trades that are not approved: everyone else must not know about them. #}
+{% if is_owner %}
+  {% for entry in profile.trades if entry.status != "approved" %}
+    <p class="mb-2">
+      {{ entry.trade }}
+      {% if entry.status == "pending" %}
+        <span class="badge text-bg-warning ms-1">waiting for approval</span>
+      {% else %}
+        <span class="badge text-bg-danger ms-1">rejected</span>
+      {% endif %}
+    </p>
+  {% endfor %}
+{% endif %}
+
+{% if profile.description %}
+  <p style="white-space: pre-line">{{ profile.description }}</p>
+{% else %}
+  <p class="text-body-secondary">No description yet.</p>
+{% endif %}
+
+{% if is_owner %}
+  <p><a class="btn btn-outline-primary" href="{{ url_for('profiles.edit', profile_id=profile.id) }}">Edit my profile</a></p>
+{% endif %}
+
+{# ===== AVAILABILITY: empty on purpose. To be filled in by the availability and booking feature. ===== #}
+<section id="availability" class="mt-4">
+  <h2 class="h5">Availability</h2>
+  <p class="text-body-secondary">Coming soon.</p>
+</section>
+{# ===== END AVAILABILITY ===== #}
+
+{# ===== REVIEWS: empty on purpose. To be filled in by the reviews feature. ===== #}
+<section id="reviews" class="mt-4">
+  <h2 class="h5">Reviews</h2>
+  <p class="text-body-secondary">Coming soon.</p>
+</section>
+{# ===== END REVIEWS ===== #}
+{% endblock %}

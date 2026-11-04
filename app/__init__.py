@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from sqlalchemy.exc import OperationalError
 
-from app.blueprints import admin, auth, bookings, jobs, main, projects, quotes, reviews
+from app.blueprints import admin, auth, bookings, jobs, main, profiles, projects, quotes, reviews
 from app.cli import reset_db
 from app.extensions import csrf, db, login_manager
 from config import Config
@@ -19,7 +19,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    for module in (main, auth, jobs, quotes, bookings, projects, reviews, admin):
+    for module in (main, auth, jobs, profiles, quotes, bookings, projects, reviews, admin):
         app.register_blueprint(module.bp)
 
     app.register_error_handler(403, forbidden)

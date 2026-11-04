@@ -19,6 +19,7 @@ from app.models import (
     Booking,
     Job,
     JobTrade,
+    TRADE_APPROVED,
     TradespersonProfile,
     TradespersonTrade,
     User,
@@ -59,7 +60,7 @@ def make_tradesperson(app, make_user):
                     user_id=user_id,
                     company_name=f"{email} GmbH",
                     service_area=area,
-                    trades=[TradespersonTrade(trade=trade) for trade in trades],
+                    trades=[TradespersonTrade(trade=trade, status=TRADE_APPROVED) for trade in trades],
                 )
             )
             db.session.commit()

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Find a tradesperson | QuickCraft{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Find a tradesperson</h1>
+
+{# GET, not POST: a search only reads data, and the URL can be bookmarked. #}
+<form class="row g-2 mb-4" method="get">
+  <div class="col-12 col-sm-5">
+    <label class="visually-hidden" for="trade">Trade</label>
+    <select class="form-select" id="trade" name="trade">
+      <option value="">All trades</option>
+      {% for trade in trades %}
+        <option value="{{ trade }}" {{ "selected" if trade == selected_trade }}>{{ trade }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12 col-sm-5">
+    <label class="visually-hidden" for="city">City</label>
+    <input class="form-control" id="city" name="city" type="text" placeholder="City" maxlength="120"
+           autocomplete="address-level2" value="{{ selected_city }}">
+  </div>
+  <div class="col-12 col-sm-2">
+    <button class="btn btn-primary w-100" type="submit">Search</button>
+  </div>
+</form>
+
+{% for profile in profiles %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2 class="h5">
+        <a class="stretched-link text-decoration-none" href="{{ url_for('profiles.detail', profile_id=profile.id) }}">{{ profile.company_name }}</a>
+        <span class="badge text-bg-success ms-1">Verified</span>
+      </h2>
+      <p class="text-body-secondary mb-0">
+        {{ profile.approved_trades | join(", ") }} &middot; {{ profile.service_area }}
+      </p>
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">No verified tradespeople match your search.</p>
+{% endfor %}
+{% endblock %}

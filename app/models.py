@@ -23,6 +23,10 @@ QUOTE_PENDING = "pending"
 QUOTE_ACCEPTED = "accepted"
 QUOTE_REJECTED = "rejected"
 
+TRADE_PENDING = "pending"
+TRADE_APPROVED = "approved"
+TRADE_REJECTED = "rejected"
+
 # A fixed list, because free text ("Plumber", "plumbing") could never be matched to jobs.
 TRADES = ("Carpenter", "Electrician", "Painter", "Plumber", "Roofer", "Tiler")
 
@@ -96,9 +100,15 @@ class TradespersonProfile(db.Model):
     # A reference number only: we deliberately store no uploaded documents (GDPR).
     qualification_reference = db.Column(db.String(50))
     service_area = db.Column(db.String(120))
+    description = db.Column(db.Text)
 
     trades = db.relationship("TradespersonTrade", backref="profile", cascade="all, delete-orphan")
     availability = db.relationship("AvailabilitySlot", backref="profile", cascade="all, delete-orphan")
+
+    @property
+    def approved_trades(self):
+        # The only trades that count for jobs, search and the public profile.
+        return [entry.trade for entry in self.trades if entry.status == TRADE_APPROVED]
 
 
 class TradespersonTrade(db.Model):
@@ -106,8 +116,11 @@ class TradespersonTrade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     profile_id = db.Column(db.ForeignKey("tradesperson_profile.id"), nullable=False)
     trade = db.Column(db.String(50), nullable=False)
+    # Pending by default, so a trade that nobody decided on can never grant access by accident.
+    status = db.Column(db.String(20), nullable=False, default=TRADE_PENDING)
 
-    __table_args__ = (db.UniqueConstraint("profile_id", "trade"),)
+    # Autoincrement so a deleted id is never reused: otherwise a stale admin tab could approve a different trade.
+    __table_args__ = (db.UniqueConstraint("profile_id", "trade"), {"sqlite_autoincrement": True})
 
 
 class AvailabilitySlot(db.Model):
