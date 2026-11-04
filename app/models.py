@@ -16,6 +16,8 @@ VERIFICATION_REJECTED = "rejected"
 JOB_OPEN = "open"
 JOB_IN_PROGRESS = "in_progress"
 JOB_DONE = "done"
+# A cancelled job keeps its row, so quotes and history stay intact and the customer can still see it.
+JOB_CANCELLED = "cancelled"
 
 QUOTE_PENDING = "pending"
 QUOTE_ACCEPTED = "accepted"
@@ -119,6 +121,8 @@ class AvailabilitySlot(db.Model):
 class Job(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    # The default keeps code that creates a job without a title working; the posting form always requires one.
+    title = db.Column(db.String(120), nullable=False, default="Untitled job")
     city = db.Column(db.String(120), nullable=False)
     description = db.Column(db.Text, nullable=False)
     urgency = db.Column(db.String(20), nullable=False)
