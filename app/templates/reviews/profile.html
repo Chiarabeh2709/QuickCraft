@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }} · QuickCraft{% endblock %}
+{% block content %}
+<h1>{{ person.name }}</h1>
+<p>Average rating: {{ average if average is not none else 'No ratings yet' }}</p>
+<h2 class="h4">Reviews</h2>
+{% for review in reviews %}<article class="border rounded p-3 mb-2"><strong>{{ review.stars }}/5</strong>{% if review.comment %}<p class="mb-0">{{ review.comment }}</p>{% endif %}</article>{% else %}<p>No reviews yet.</p>{% endfor %}
+{% endblock %}
