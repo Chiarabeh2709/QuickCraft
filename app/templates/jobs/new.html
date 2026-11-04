@@ -31,6 +31,11 @@
              {{ "checked" if request.form.get("urgent") }}>
       <label class="form-check-label" for="urgent">This is urgent</label>
     </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="small" name="small" value="1"
+             {{ "checked" if request.form.get("small") }}>
+      <label class="form-check-label" for="small">This is a small job: I want to book a free slot directly</label>
+    </div>
     <button class="btn btn-primary w-100" type="submit">Post job</button>
   </form>
   <p class="mt-3"><a href="{{ url_for('jobs.my_jobs') }}">Back to my jobs</a></p>

@@ -23,11 +23,17 @@
         {% if job.urgency == "urgent" %}<span class="badge text-bg-danger ms-1">Urgent</span>{% endif %}
       </p>
       <p class="mb-3" style="white-space: pre-line">{{ job.description }}</p>
+      <p><a href="{{ url_for('quotes.compare', job_id=job.id) }}">View quotes</a></p>
       {% if job.status == "open" %}
-        <form method="post" action="{{ url_for('jobs.cancel', job_id=job.id) }}">
-          {{ csrf_field() }}
-          <button class="btn btn-outline-danger btn-sm" type="submit">Cancel job</button>
-        </form>
+        <div class="d-flex gap-2">
+          {% if job.is_small %}
+            <a class="btn btn-primary btn-sm" href="{{ url_for('bookings.slots', job_id=job.id) }}">Book a slot</a>
+          {% endif %}
+          <form method="post" action="{{ url_for('jobs.cancel', job_id=job.id) }}">
+            {{ csrf_field() }}
+            <button class="btn btn-outline-danger btn-sm" type="submit">Cancel job</button>
+          </form>
+        </div>
       {% endif %}
     </div>
   </div>
