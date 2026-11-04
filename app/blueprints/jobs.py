@@ -60,6 +60,7 @@ def build_job(trades):
         description=form_value("description"),
         city=form_value("city"),
         urgency=URGENCY_URGENT if request.form.get("urgent") else URGENCY_NORMAL,
+        is_small=bool(request.form.get("small")),
         trades=[JobTrade(trade=trade) for trade in trades],
     )
 

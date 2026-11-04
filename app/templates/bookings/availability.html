@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}My availability | QuickCraft{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">My availability</h1>
+<p class="text-body-secondary">
+  These slots repeat every week. Customers can book each one for a small job.
+</p>
+
+{% for slot in slots %}
+  <div class="card mb-2">
+    <div class="card-body d-flex justify-content-between align-items-center gap-2">
+      <span>
+        <strong>{{ weekdays[slot.weekday] }}</strong>
+        {{ slot.start_time.strftime("%H:%M") }}&ndash;{{ slot.end_time.strftime("%H:%M") }}
+      </span>
+      <form method="post" action="{{ url_for('bookings.delete_slot', slot_id=slot.id) }}">
+        {{ csrf_field() }}
+        <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <p class="text-body-secondary">You have not added a slot yet.</p>
+{% endfor %}
+
+<div class="narrow-form mt-4">
+  <h2 class="h5">Add a slot</h2>
+  <form method="post">
+    {{ csrf_field() }}
+    <div class="mb-3">
+      <label class="form-label" for="weekday">Weekday</label>
+      <select class="form-select" id="weekday" name="weekday" required>
+        {% for weekday in weekdays %}
+          <option value="{{ loop.index0 }}" {{ "selected" if request.form.get("weekday") == loop.index0 | string }}>{{ weekday }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="start_time">Start time</label>
+      <input class="form-control" id="start_time" name="start_time" type="time" required
+             value="{{ request.form.get('start_time', '') }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="end_time">End time</label>
+      <input class="form-control" id="end_time" name="end_time" type="time" required
+             value="{{ request.form.get('end_time', '') }}">
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Add slot</button>
+  </form>
+</div>
+{% endblock %}
