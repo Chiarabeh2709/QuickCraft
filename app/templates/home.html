@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}QuickCraft: find a tradesperson in a few steps{% endblock %}
+
+{% block content %}
+<section class="py-4 py-md-5 text-center">
+  <h1 class="display-5 fw-bold">Find the right tradesperson, fast</h1>
+  <p class="lead text-body-secondary mx-auto" style="max-width: 36rem">
+    Describe your job, compare quotes from verified tradespeople and pick whoever can start soonest.
+  </p>
+</section>
+
+<section class="row g-3 pb-5">
+  <div class="col-12 col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <span class="step-number text-bg-primary mb-3">1</span>
+        <h2 class="h5">Describe your job</h2>
+        <p class="card-text text-body-secondary">Choose the trade and your city, and say how urgent it is.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <span class="step-number text-bg-primary mb-3">2</span>
+        <h2 class="h5">Compare quotes</h2>
+        <p class="card-text text-body-secondary">See the price and earliest start date, sorted by who is available soonest.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <span class="step-number text-bg-primary mb-3">3</span>
+        <h2 class="h5">Book and review</h2>
+        <p class="card-text text-body-secondary">Accept a quote or book a free slot, then leave a review once the work is done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
