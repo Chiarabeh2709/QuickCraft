@@ -1,4 +1,4 @@
-{# Import with "with context" so these macros can read request.form. #}
+{# Import with "with context" so these macros can read request.form and errors. #}
 
 {% macro csrf_field() %}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -6,18 +6,30 @@
 
 {# Refills the value after a failed submit, so people do not have to retype everything. #}
 {% macro text_field(name, label, type="text", autocomplete="off", maxlength=120) %}
+  {% set error = errors and errors.get(name) %}
   <div class="mb-3">
     <label class="form-label" for="{{ name }}">{{ label }}</label>
-    <input class="form-control" id="{{ name }}" name="{{ name }}" type="{{ type }}" required
+    <input class="form-control{{ ' is-invalid' if error }}" id="{{ name }}" name="{{ name }}" type="{{ type }}" required
            maxlength="{{ maxlength }}" autocomplete="{{ autocomplete }}" value="{{ request.form.get(name, '') }}">
+    {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
   </div>
 {% endmacro %}
 
 {# Never refilled: a password must not be sent back in the page. #}
 {% macro password_field(autocomplete, hint="") %}
+  {% set error = errors and errors.get("password") %}
   <div class="mb-3">
     <label class="form-label" for="password">Password</label>
-    <input class="form-control" id="password" name="password" type="password" required autocomplete="{{ autocomplete }}">
+    <input class="form-control{{ ' is-invalid' if error }}" id="password" name="password" type="password" required autocomplete="{{ autocomplete }}">
+    {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
     {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
   </div>
+{% endmacro %}
+
+{# The same contact fields on both sign-up forms. #}
+{% macro contact_fields() %}
+  {{ text_field("phone", "Phone number", type="tel", autocomplete="tel", maxlength=30) }}
+  {{ text_field("street", "Street and house number", autocomplete="street-address") }}
+  {{ text_field("postal_code", "Postal code", autocomplete="postal-code", maxlength=10) }}
+  {{ text_field("city", "City", autocomplete="address-level2") }}
 {% endmacro %}
