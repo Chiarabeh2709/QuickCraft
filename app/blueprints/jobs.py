@@ -65,6 +65,11 @@ def build_job(trades):
     )
 
 
+def has_accepted_quote(job):
+    query = db.select(Quote.id).join(JobTrade).where(JobTrade.job_id == job.id, Quote.status == QUOTE_ACCEPTED)
+    return db.session.scalar(query.limit(1)) is not None
+
+
 # --- Customer: post and manage own jobs ---------------------------------------------------
 
 
@@ -100,8 +105,9 @@ def cancel(job_id):
     if job.customer_id != current_user.id:
         abort(403)
     # Once a quote is accepted or a slot booked the job is no longer open, so a stale page cannot cancel it.
-    if job.status != JOB_OPEN:
-        flash("Only open jobs can be cancelled.", "warning")
+    # A multi-trade job stays open after its first acceptance, so that needs its own check.
+    if job.status != JOB_OPEN or has_accepted_quote(job):
+        flash("Only open jobs without an accepted quote can be cancelled.", "warning")
         return redirect(url_for("jobs.my_jobs"))
     job.status = JOB_CANCELLED
     db.session.commit()

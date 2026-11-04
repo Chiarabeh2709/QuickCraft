@@ -6,7 +6,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 
-from app.blueprints.jobs import matching_jobs_query
+from app.blueprints.jobs import has_accepted_quote, matching_jobs_query
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
@@ -129,7 +129,8 @@ def own_job(job_id):
 
 
 def job_is_bookable(job):
-    return job.status == JOB_OPEN and job.is_small
+    # A multi-trade job stays open after its first accepted quote, but a booking would close it.
+    return job.status == JOB_OPEN and job.is_small and not has_accepted_quote(job)
 
 
 def offers_job(profile, job):

@@ -13,6 +13,9 @@
   {{ job.city }} &middot; {{ job.trades | map(attribute="trade") | join(", ") }}
 </p>
 <p style="white-space: pre-line">{{ job.description }}</p>
+{% if job.status == "open" %}
+  <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
+{% endif %}
 
 <h2 class="h5 mt-4">Customer contact</h2>
 {# Phone and address are only rendered inside this branch, so they cannot leak into the page by accident. #}

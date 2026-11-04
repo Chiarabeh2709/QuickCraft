@@ -30,6 +30,8 @@
               <li class="nav-item"><a class="nav-link" href="{{ url_for('jobs.my_jobs') }}">My jobs</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.my_bookings') }}">My bookings</a></li>
             {% elif current_user.is_verified_tradesperson %}
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('jobs.job_list') }}">Find jobs</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('quotes.my_quotes') }}">My quotes</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.availability') }}">My availability</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.appointments') }}">My appointments</a></li>
             {% endif %}
