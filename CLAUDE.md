@@ -40,7 +40,7 @@ Customers and tradespeople have an `email_verified` field (simulated). We do NOT
 - Every edit route has an ownership check: users only change their own data.
 - Passwords are always hashed.
 - A customer's phone number and address stay hidden from a tradesperson until the customer has accepted that tradesperson's quote or booked their slot. Never show them on the job list or job detail page before that.
-- Collect only the data we need (data minimisation, GDPR): NO ID upload for customers; tradespeople give a qualification reference number only, no document uploads.
+- Collect only the data we need (data minimisation, GDPR): name, email, phone and address, because the service needs them to connect customers and tradespeople. NO ID upload; tradespeople give a qualification reference number only, no document uploads. A tradesperson's phone and address never appear on a public profile or in search.
 - `flask reset-db` wipes and recreates the local database after model changes; it refuses to run when `RENDER` is set, and that guard must stay.
 - Keep functions small.
 - Write short comments that explain the why, not the what.

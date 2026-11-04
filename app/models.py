@@ -40,9 +40,10 @@ class User(UserMixin, db.Model):
     # Only tradespeople have a status. Empty never counts as verified, so the safe case is the default.
     verification_status = db.Column(db.String(20))
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
-    # Private: stay hidden from a tradesperson until a quote is accepted or a slot is booked.
+    # Private. A customer's stay hidden from a tradesperson until a quote is accepted or a slot is booked;
+    # a tradesperson's never appear on a public profile or in search.
     phone = db.Column(db.String(30))
-    address = db.Column(db.String(255))
+    address = db.Column(db.String(255))  # One line: "street, postal code city"
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     profile = db.relationship(
