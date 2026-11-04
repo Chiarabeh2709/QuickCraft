@@ -530,3 +530,99 @@ def test_accepting_one_tradesperson_does_not_reveal_contact_to_another(
 
     assert response.status_code == 200
     assert not contact_visible(response.get_data(as_text=True))
+
+
+# --- Contact data entered at sign-up ------------------------------------------------------
+
+SIGNUP_FIELDS = {"phone": "+49 30 5550199", "street": "Gartenweg 7", "postal_code": "10115", "city": "Berlin"}
+SIGNUP_ADDRESS = "Gartenweg 7, 10115 Berlin"
+
+
+@pytest.fixture
+def signed_up_customer(app, client):
+    """A customer created through the real sign-up form, then logged out."""
+    client.post(
+        "/auth/signup/customer",
+        data={"name": "Clara", "email": "clara@example.com", "password": "correct-horse", **SIGNUP_FIELDS},
+    )
+    client.post("/auth/logout")
+    with app.app_context():
+        user = db.session.scalar(db.select(User).filter_by(email="clara@example.com"))
+        user.email_verified = True
+        db.session.commit()
+        return user.id
+
+
+def test_signup_contact_data_is_hidden_until_quote_is_accepted(
+    client, signed_up_customer, make_tradesperson, make_job, add_quote, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(signed_up_customer)
+    login("ben@example.com")
+
+    for url in ("/jobs/", f"/jobs/{job_id}"):
+        page = client.get(url).get_data(as_text=True)
+        assert SIGNUP_FIELDS["phone"] not in page and SIGNUP_ADDRESS not in page
+
+    add_quote(job_id, tradesperson, status=QUOTE_PENDING)
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+    assert SIGNUP_FIELDS["phone"] not in page and SIGNUP_ADDRESS not in page
+
+
+def test_signup_contact_data_is_shown_after_quote_is_accepted(
+    client, signed_up_customer, make_tradesperson, make_job, add_quote, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(signed_up_customer, status=JOB_IN_PROGRESS)
+    add_quote(job_id, tradesperson)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert SIGNUP_FIELDS["phone"] in page and SIGNUP_ADDRESS in page
+
+
+def test_signup_contact_data_is_shown_after_slot_is_booked(
+    client, signed_up_customer, make_tradesperson, make_job, add_booking, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(signed_up_customer, status=JOB_IN_PROGRESS)
+    add_booking(job_id, tradesperson)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert SIGNUP_FIELDS["phone"] in page and SIGNUP_ADDRESS in page
+
+
+def test_tradesperson_contact_data_appears_on_no_existing_page(
+    app, client, customer_id, make_tradesperson, make_user, make_job, add_quote, login
+):
+    # There is no public profile or search yet, so this covers every page that shows a tradesperson today.
+    tradesperson = make_tradesperson(email="ben@example.com")
+    make_tradesperson(email="other@example.com")
+    pending = make_tradesperson(email="new@example.com", status=VERIFICATION_PENDING)
+    make_user(email="admin@example.com", role=ROLE_ADMIN)
+    tradesperson_phone, tradesperson_address = "+49 40 5550777", "Werkstrasse 1, 20095 Hamburg"
+    with app.app_context():
+        for user_id in (tradesperson, pending):
+            user = db.session.get(User, user_id)
+            user.phone = tradesperson_phone
+            user.address = tradesperson_address
+        db.session.commit()
+    job_id = make_job(customer_id, status=JOB_IN_PROGRESS)
+    add_quote(job_id, tradesperson)
+
+    visits = [
+        ("anna@example.com", ["/", "/jobs/mine"]),
+        ("other@example.com", ["/", "/jobs/"]),
+        ("admin@example.com", ["/", "/admin/tradespeople"]),
+    ]
+    for email, urls in visits:
+        login(email)
+        for url in urls:
+            response = client.get(url)
+            assert response.status_code == 200
+            page = response.get_data(as_text=True)
+            assert tradesperson_phone not in page and tradesperson_address not in page
+        client.post("/auth/logout")
