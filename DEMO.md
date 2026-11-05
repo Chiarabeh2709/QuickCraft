@@ -26,24 +26,22 @@ Every demo account uses the password `demo-password-123`. The admin has its own 
 
 ## Click path for the presentation
 
-Some pages have no link in the app yet, so this path gives their URLs.
-
-1. **Customer posts a job.** Log in as Emma. Open **My jobs**, then **Post a job**. Choose the trade *Plumber* and the city *Berlin*. Use the English city spelling, because jobs and tradespeople are matched on the exact name.
-2. **Tradesperson quotes.** Log in as Daniel (Harbor Plumbing Ltd). Open **Find jobs**, open the new job and send a quote. The customer's phone and address are still hidden.
+1. **Customer posts a job.** Log in as Emma. Click **Post a job**. Choose the trade *Plumber* and the city *Berlin*. Use the English city spelling, because jobs and tradespeople are matched on the exact name.
+2. **Tradesperson quotes.** Log in as Daniel (Harbor Plumbing Ltd). Click **Open jobs**, open the new job and send a quote. The customer's phone and address are still hidden.
 3. **Customer accepts.** Log in as Emma. Open **My jobs**, then **View quotes**, and click **Accept**. The tradesperson can now see the customer's contact details on the job page.
-4. **Appointment.** Accepting a quote does not set a date yet, so show the prepared job instead. Emma's *Replace the old shower* has an accepted quote and a future appointment under **My bookings**, and Daniel sees it under **My appointments**. Do not click **Cancel booking** on it: the job would reopen although its quote stays accepted.
-5. **Project page.** Log in as Olivia and open `/projects/1`. It shows her kitchen job with its tiler and carpenter, their dates and their comments. The page uses the job's description as its heading, not the title *Kitchen makeover*.
-6. **Review.** Log in as Emma and open `/reviews/jobs/<id>` for the job from step 1, using the id in the job's address. Click **Mark job as done**, then submit a review. To show a finished example, log in as Thomas and open `/reviews/jobs/11`.
+4. **Appointment.** Accepting a quote does not set a date yet, so show the prepared job instead. Emma's *Replace the old shower* has an accepted quote and a future appointment, and both Emma and Daniel see it under **My appointments**. Do not click **Cancel booking** on it: the job would reopen although its quote stays accepted.
+5. **Project page.** Log in as Olivia, click **My jobs**, then **Project page** on *Kitchen makeover*. It shows her kitchen job with its tiler and carpenter, their dates and their comments. The page uses the job's description as its heading, not the title *Kitchen makeover*.
+6. **Review.** Log in as Emma, click **My jobs**, then **Mark as done and review** on the job from step 1. Click **Mark job as done**, then submit a review. To show a finished example, log in as Thomas, click **My jobs**, then **Reviews** on *Repaint the bedroom*.
 
 ## Other useful pages
 
 | Page | Log in as | Shows |
 | --- | --- | --- |
-| `/profiles/` | Any demo customer | Search by trade and city |
-| `/reviews/tradespeople` | Any demo customer | List with ratings |
-| `/admin/tradespeople` | Admin | One pending account and one pending trade |
-| `/quotes/job/4` | Thomas | Two quotes to sort by soonest or by price |
-| `/bookings/job/5` | Olivia | Free slots for a small job |
+| **Find tradespeople** | Any demo customer | Search by trade and city |
+| **Tradespeople reviews** | Any demo customer | List with ratings |
+| **Approve tradespeople and trades** | Admin | One pending account and one pending trade |
+| **My jobs**, then **View quotes** on *Service the boiler before winter* | Thomas | Two quotes to sort by soonest or by price |
+| **My jobs**, then **Book a slot** on *Fix a dripping bathroom tap* | Olivia | Free slots for a small job |
 
 ## Good to know
 
