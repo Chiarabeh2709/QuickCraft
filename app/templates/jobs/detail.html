@@ -13,6 +13,20 @@
   {{ job.city }} &middot; {{ job.trades | map(attribute="trade") | join(", ") }}
 </p>
 <p style="white-space: pre-line">{{ job.description }}</p>
+{# Mirrors the project routes: members have an accepted quote, and a project needs two accepted trades. #}
+{% set project = namespace(is_member=false, accepted_trades=0) %}
+{% for job_trade in job.trades %}
+  {% set accepted = job_trade.quotes | selectattr("status", "equalto", "accepted") | list %}
+  {% if accepted %}
+    {% set project.accepted_trades = project.accepted_trades + 1 %}
+  {% endif %}
+  {% if accepted | selectattr("tradesperson_id", "equalto", current_user.id) | list %}
+    {% set project.is_member = true %}
+  {% endif %}
+{% endfor %}
+{% if current_user.is_verified_tradesperson and project.is_member and project.accepted_trades >= 2 %}
+  <p><a href="{{ url_for('projects.for_job', job_id=job.id) }}">Project page</a></p>
+{% endif %}
 {% if job.status == "open" %}
   <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
 {% endif %}
