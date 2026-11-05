@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def env_flag(name):
+    return os.environ.get(name, "").strip().lower() == "true"
+
+
 class Config:
     # No default on purpose: a public site with a known key lets anyone forge logins.
     SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -14,6 +18,8 @@ class Config:
     # Signup cannot create admins, so the first admin comes from the environment.
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+    # Off unless asked for: demo accounts have a public password and must never reach a real site by accident.
+    SEED_DEMO_DATA = env_flag("SEED_DEMO_DATA")
     # Render always sets RENDER=true. Local dev runs on plain http, where a secure cookie would break login.
     SESSION_COOKIE_SECURE = os.environ.get("RENDER") == "true"
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -26,5 +32,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     ADMIN_EMAIL = None
     ADMIN_PASSWORD = None
+    # Set explicitly, so a developer's .env can never put demo data into the tests.
+    SEED_DEMO_DATA = False
     # Tests post forms directly; one test switches this back on to prove CSRF works.
     WTF_CSRF_ENABLED = False
