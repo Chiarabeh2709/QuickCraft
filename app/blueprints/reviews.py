@@ -1,10 +1,22 @@
 # Feature 6: reviews after a job is done.
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user
+from sqlalchemy import func
 
 from app.decorators import confirmed_customer_required
 from app.extensions import db
-from app.models import JOB_DONE, Job, Quote, QUOTE_ACCEPTED, Review, ROLE_TRADESPERSON, User
+from app.models import (
+    JOB_DONE,
+    QUOTE_ACCEPTED,
+    ROLE_TRADESPERSON,
+    TRADE_APPROVED,
+    VERIFICATION_VERIFIED,
+    Job,
+    Quote,
+    Review,
+    TradespersonProfile,
+    User,
+)
 
 bp = Blueprint("reviews", __name__, url_prefix="/reviews")
 
@@ -80,11 +92,19 @@ def add_review(job_id, tradesperson_id):
     return redirect(url_for("reviews.tradesperson_profile", tradesperson_id=tradesperson_id))
 
 
-def tradespeople_query(search=""):
-    query = db.select(User).where(User.role == ROLE_TRADESPERSON)
+def listed_profiles(search=""):
+    query = (
+        db.select(TradespersonProfile)
+        .join(User)
+        # In the query itself, so pending and rejected tradespeople can never reach this list.
+        .where(User.role == ROLE_TRADESPERSON, User.verification_status == VERIFICATION_VERIFIED)
+        .where(TradespersonProfile.trades.any(status=TRADE_APPROVED))
+        .order_by(func.lower(TradespersonProfile.company_name), TradespersonProfile.id)
+    )
     if search:
-        query = query.where(User.name.ilike(f"%{search}%"))
-    return db.session.scalars(query.order_by(User.name)).all()
+        # By company only: searching personal names would let people test who works where.
+        query = query.where(TradespersonProfile.company_name.icontains(search, autoescape=True))
+    return db.session.scalars(query).all()
 
 
 def rating_for(user):
@@ -93,19 +113,28 @@ def rating_for(user):
 
 
 @bp.get("/tradespeople")
+@confirmed_customer_required
 def search_tradespeople():
     search = request.args.get("q", "").strip()
-    people = tradespeople_query(search)
-    return render_template("reviews/search.html", people=people, ratings={person.id: rating_for(person) for person in people}, search=search)
+    profiles = listed_profiles(search)
+    ratings = {profile.user_id: rating_for(profile.user) for profile in profiles}
+    return render_template("reviews/search.html", profiles=profiles, ratings=ratings, search=search)
+
+
+def verified_profile_or_404(user_id):
+    profile = db.session.scalar(db.select(TradespersonProfile).filter_by(user_id=user_id))
+    # 404, not 403: a pending or rejected tradesperson should look like they do not exist.
+    if profile is None or not profile.user.is_verified_tradesperson:
+        abort(404)
+    return profile
 
 
 @bp.get("/tradespeople/<int:tradesperson_id>")
+@confirmed_customer_required
 def tradesperson_profile(tradesperson_id):
-    person = db.session.get(User, tradesperson_id)
-    if person is None or person.role != ROLE_TRADESPERSON:
-        abort(404)
+    profile = verified_profile_or_404(tradesperson_id)
     reviews = db.session.scalars(
-        db.select(Review).where(Review.tradesperson_id == person.id).order_by(Review.created_at.desc())
+        db.select(Review).where(Review.tradesperson_id == profile.user_id).order_by(Review.created_at.desc())
     ).all()
     average = round(sum(review.stars for review in reviews) / len(reviews), 1) if reviews else None
-    return render_template("reviews/profile.html", person=person, reviews=reviews, average=average)
+    return render_template("reviews/profile.html", profile=profile, reviews=reviews, average=average)

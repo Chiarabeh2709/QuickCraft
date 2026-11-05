@@ -3,7 +3,26 @@ from datetime import date
 import pytest
 
 from app.extensions import db
-from app.models import JOB_OPEN, Job, JobTrade, Quote, QUOTE_ACCEPTED, ROLE_TRADESPERSON, Review, VERIFICATION_VERIFIED
+from app.models import (
+    JOB_OPEN,
+    QUOTE_ACCEPTED,
+    ROLE_ADMIN,
+    ROLE_CUSTOMER,
+    ROLE_TRADESPERSON,
+    TRADE_APPROVED,
+    TRADE_PENDING,
+    TRADE_REJECTED,
+    VERIFICATION_PENDING,
+    VERIFICATION_REJECTED,
+    VERIFICATION_VERIFIED,
+    Job,
+    JobTrade,
+    Quote,
+    Review,
+    TradespersonProfile,
+    TradespersonTrade,
+    User,
+)
 
 
 @pytest.fixture
@@ -12,6 +31,13 @@ def review_fixture(app, make_user):
     worker = make_user(email="worker@example.com", role=ROLE_TRADESPERSON, status=VERIFICATION_VERIFIED)
     other = make_user(email="other@example.com", role=ROLE_TRADESPERSON, status=VERIFICATION_VERIFIED)
     with app.app_context():
+        db.session.add(
+            TradespersonProfile(
+                user_id=worker,
+                company_name="Worker GmbH",
+                trades=[TradespersonTrade(trade="Plumber", status=TRADE_APPROVED)],
+            )
+        )
         job = Job(customer_id=customer, city="Lisbon", description="Fix sink", urgency="soon", status=JOB_OPEN)
         db.session.add(job)
         db.session.flush()
@@ -60,6 +86,202 @@ def test_profile_and_search_show_average_and_reviews(client, login, review_fixtu
     client.post(f"/reviews/jobs/{review_fixture['job']}/done")
     client.post(f"/reviews/jobs/{review_fixture['job']}/tradespeople/{review_fixture['worker']}", data={"stars": "5", "comment": "Great work"})
     profile = client.get(f"/reviews/tradespeople/{review_fixture['worker']}")
-    search = client.get("/reviews/tradespeople?q=Test")
+    search = client.get("/reviews/tradespeople?q=Worker")
     assert b"5.0" in profile.data and b"Great work" in profile.data
-    assert b"5.0" in search.data and b"Test User" in search.data
+    assert b"5.0" in search.data and b"Worker GmbH" in search.data
+
+
+# --- Who is listed on /reviews/tradespeople, and what it shows ------------------------------
+
+LIST_URL = "/reviews/tradespeople"
+CUSTOMER = "customer@example.com"
+TRADESPERSON = "person@example.com"
+COMPANY = "Listed Plumbing GmbH"
+PERSONAL_NAME = "Private Person"
+PHONE = "+49 40 5550777"
+ADDRESS = "Werkstrasse 1, 20095 Hamburg"
+
+
+@pytest.fixture
+def make_listed(app, make_user):
+    """Creates a tradesperson with private details and a profile, and returns the user id."""
+
+    def _make(email=TRADESPERSON, status=VERIFICATION_VERIFIED, company=COMPANY, trades=None):
+        user_id = make_user(email=email, role=ROLE_TRADESPERSON, status=status, email_verified=True)
+        trades = {"Plumber": TRADE_APPROVED} if trades is None else trades
+        with app.app_context():
+            user = db.session.get(User, user_id)
+            user.name, user.phone, user.address = PERSONAL_NAME, PHONE, ADDRESS
+            db.session.add(
+                TradespersonProfile(
+                    user_id=user_id,
+                    company_name=company,
+                    qualification_reference="HWK-SECRET-1",
+                    service_area="Berlin",
+                    trades=[TradespersonTrade(trade=trade, status=value) for trade, value in trades.items()],
+                )
+            )
+            db.session.commit()
+        return user_id
+
+    return _make
+
+
+@pytest.fixture
+def customer(make_user, login):
+    make_user(email=CUSTOMER, role=ROLE_CUSTOMER, email_verified=True)
+    login(CUSTOMER)
+
+
+def assert_no_private_data(page):
+    for value in (PERSONAL_NAME, PHONE, ADDRESS, TRADESPERSON, "HWK-SECRET-1"):
+        assert value not in page
+
+
+# Who may open the list and the page of one tradesperson.
+
+
+def urls(user_id):
+    return [LIST_URL, f"{LIST_URL}/{user_id}"]
+
+
+def test_anonymous_visitor_is_sent_to_login(client, make_listed):
+    for url in urls(make_listed()):
+        response = client.get(url)
+        assert response.status_code == 302
+        assert "/auth/login" in response.location
+
+
+def test_unconfirmed_customer_is_sent_to_confirm_page(client, make_user, make_listed, login):
+    user_id = make_listed()
+    make_user(email=CUSTOMER, role=ROLE_CUSTOMER, email_verified=False)
+    login(CUSTOMER)
+    for url in urls(user_id):
+        response = client.get(url)
+        assert response.status_code == 302
+        assert response.location.endswith("/auth/confirm-email")
+
+
+@pytest.mark.parametrize(
+    "role, status",
+    [(ROLE_TRADESPERSON, VERIFICATION_VERIFIED), (ROLE_TRADESPERSON, VERIFICATION_PENDING), (ROLE_ADMIN, None)],
+)
+def test_other_roles_cannot_open_it(client, make_user, make_listed, login, role, status):
+    user_id = make_listed()
+    make_user(email="user@example.com", role=role, status=status, email_verified=True)
+    login("user@example.com")
+    for url in urls(user_id):
+        assert client.get(url).status_code == 403
+
+
+def test_confirmed_customer_can_open_it(client, customer, make_listed):
+    for url in urls(make_listed()):
+        assert client.get(url).status_code == 200
+
+
+# Who appears.
+
+
+def test_list_shows_verified_tradespeople(client, customer, make_listed):
+    make_listed()
+    assert COMPANY in client.get(LIST_URL).get_data(as_text=True)
+
+
+@pytest.mark.parametrize("status", [VERIFICATION_PENDING, VERIFICATION_REJECTED, None])
+def test_unverified_tradesperson_is_never_listed(client, customer, make_listed, status):
+    make_listed(status=status)
+    assert COMPANY not in client.get(LIST_URL).get_data(as_text=True)
+    assert COMPANY not in client.get(LIST_URL, query_string={"q": "Listed"}).get_data(as_text=True)
+
+
+@pytest.mark.parametrize("status", [VERIFICATION_PENDING, VERIFICATION_REJECTED, None])
+def test_unverified_tradesperson_cannot_be_reached_by_id(client, customer, make_listed, status):
+    assert client.get(f"{LIST_URL}/{make_listed(status=status)}").status_code == 404
+
+
+@pytest.mark.parametrize("status", [VERIFICATION_PENDING, VERIFICATION_REJECTED])
+def test_unverified_tradesperson_cannot_see_own_page_by_id(client, make_listed, login, status):
+    # They get the same answer as anyone not allowed here, which reveals nothing.
+    user_id = make_listed(status=status)
+    login(TRADESPERSON)
+    assert client.get(f"{LIST_URL}/{user_id}").status_code == 403
+
+
+def test_customer_id_is_not_found(client, make_user, customer):
+    other = make_user(email="other-customer@example.com", role=ROLE_CUSTOMER)
+    assert client.get(f"{LIST_URL}/{other}").status_code == 404
+
+
+def test_unknown_id_is_not_found(client, customer):
+    assert client.get(f"{LIST_URL}/999").status_code == 404
+
+
+def test_verified_user_without_profile_is_not_found(client, make_user, customer):
+    user_id = make_user(email="no-profile@example.com", role=ROLE_TRADESPERSON, status=VERIFICATION_VERIFIED)
+    assert client.get(f"{LIST_URL}/{user_id}").status_code == 404
+
+
+def test_tradesperson_without_approved_trade_is_not_listed(client, customer, make_listed):
+    make_listed(trades={"Plumber": TRADE_PENDING})
+    assert COMPANY not in client.get(LIST_URL).get_data(as_text=True)
+
+
+# What is shown.
+
+
+def test_list_shows_company_and_approved_trades_only(client, customer, make_listed):
+    make_listed(trades={"Plumber": TRADE_APPROVED, "Tiler": TRADE_PENDING, "Roofer": TRADE_REJECTED})
+    page = client.get(LIST_URL).get_data(as_text=True)
+    assert COMPANY in page and "Plumber" in page
+    assert "Tiler" not in page and "Roofer" not in page
+
+
+def test_page_shows_company_and_approved_trades_only(client, customer, make_listed):
+    user_id = make_listed(trades={"Plumber": TRADE_APPROVED, "Tiler": TRADE_PENDING, "Roofer": TRADE_REJECTED})
+    page = client.get(f"{LIST_URL}/{user_id}").get_data(as_text=True)
+    assert COMPANY in page and "Plumber" in page
+    assert "Tiler" not in page and "Roofer" not in page
+
+
+def test_list_and_page_never_show_private_data(client, customer, make_listed):
+    for url in urls(make_listed()):
+        assert_no_private_data(client.get(url).get_data(as_text=True))
+
+
+def test_search_finds_company_name(client, customer, make_listed):
+    make_listed()
+    make_listed(email="other@example.com", company="Tina Tiles")
+    page = client.get(LIST_URL, query_string={"q": "listed"}).get_data(as_text=True)
+    assert COMPANY in page
+    assert "Tina Tiles" not in page
+
+
+@pytest.mark.parametrize("term", [PERSONAL_NAME, "Private", PHONE, "Werkstrasse", TRADESPERSON])
+def test_search_cannot_look_up_private_data(client, customer, make_listed, term):
+    make_listed()
+    assert COMPANY not in client.get(LIST_URL, query_string={"q": term}).get_data(as_text=True)
+
+
+def test_search_treats_wildcards_as_plain_text(client, customer, make_listed):
+    make_listed()
+    assert COMPANY not in client.get(LIST_URL, query_string={"q": "L%d"}).get_data(as_text=True)
+
+
+def test_search_term_is_escaped(client, customer):
+    page = client.get(LIST_URL, query_string={"q": "<script>alert(1)</script>"}).get_data(as_text=True)
+    assert "<script>alert(1)</script>" not in page
+
+
+def test_rating_is_shown_for_a_reviewed_tradesperson(app, client, make_user, make_listed, login):
+    user_id = make_listed()
+    customer_id = make_user(email=CUSTOMER, role=ROLE_CUSTOMER, email_verified=True)
+    with app.app_context():
+        job = Job(customer_id=customer_id, city="Berlin", description="Tap", urgency="normal", status="done")
+        db.session.add(job)
+        db.session.flush()
+        db.session.add(Review(job_id=job.id, tradesperson_id=user_id, stars=4, comment="Good"))
+        db.session.commit()
+    login(CUSTOMER)
+    assert "Rating: 4.0" in client.get(LIST_URL).get_data(as_text=True)
+    page = client.get(f"{LIST_URL}/{user_id}").get_data(as_text=True)
+    assert "4.0" in page and "Good" in page
