@@ -4,6 +4,7 @@ from sqlalchemy.exc import OperationalError
 from app.blueprints import admin, auth, bookings, jobs, main, profiles, projects, quotes, reviews
 from app.cli import reset_db
 from app.extensions import csrf, db, login_manager
+from app.seed import seed_if_enabled
 from config import Config
 
 
@@ -36,6 +37,8 @@ def create_app(config_class=Config):
             # An outdated table must not stop startup, or `flask reset-db` could never run to fix it.
             db.session.rollback()
             app.logger.warning("Could not check the admin: the database is outdated. Locally, run: flask reset-db")
+
+        seed_if_enabled()
 
     return app
 

@@ -28,7 +28,7 @@ TRADE_APPROVED = "approved"
 TRADE_REJECTED = "rejected"
 
 # A fixed list, because free text ("Plumber", "plumbing") could never be matched to jobs.
-TRADES = ("Carpenter", "Electrician", "Painter", "Plumber", "Roofer", "Tiler")
+TRADES = ("Carpenter", "Electrician", "Heating engineer", "Painter", "Plumber", "Roofer", "Tiler")
 
 
 def utcnow():

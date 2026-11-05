@@ -6,6 +6,7 @@ from flask.cli import with_appcontext
 
 from app.extensions import db
 from app.models import ensure_admin
+from app.seed import seed_if_enabled
 
 
 @click.command("reset-db")
@@ -23,10 +24,12 @@ def reset_db():
     password = current_app.config["ADMIN_PASSWORD"]
     ensure_admin(email, password)
 
-    # >>> SEED DATA: call the seed script here once it exists (feature 7). <<<
+    seeded = seed_if_enabled()
 
     click.echo(f"Database reset: {db.engine.url}")
     if email and password:
         click.echo(f"Admin created: {email}")
     else:
         click.echo("No admin created: ADMIN_EMAIL and ADMIN_PASSWORD are not both set.")
+    if seeded:
+        click.echo("Demo data created: see DEMO.md")
