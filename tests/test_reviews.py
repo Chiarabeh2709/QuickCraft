@@ -207,6 +207,16 @@ def test_unverified_tradesperson_cannot_see_own_page_by_id(client, make_listed, 
     assert client.get(f"{LIST_URL}/{user_id}").status_code == 403
 
 
+@pytest.mark.parametrize("status", [TRADE_PENDING, TRADE_REJECTED])
+def test_verified_tradesperson_without_approved_trade_cannot_be_reached_by_id(client, customer, make_listed, status):
+    user_id = make_listed(trades={"Plumber": status})
+    assert client.get(f"{LIST_URL}/{user_id}").status_code == 404
+
+
+def test_verified_tradesperson_without_any_trade_cannot_be_reached_by_id(client, customer, make_listed):
+    assert client.get(f"{LIST_URL}/{make_listed(trades={})}").status_code == 404
+
+
 def test_customer_id_is_not_found(client, make_user, customer):
     other = make_user(email="other-customer@example.com", role=ROLE_CUSTOMER)
     assert client.get(f"{LIST_URL}/{other}").status_code == 404
@@ -285,3 +295,35 @@ def test_rating_is_shown_for_a_reviewed_tradesperson(app, client, make_user, mak
     assert "Rating: 4.0" in client.get(LIST_URL).get_data(as_text=True)
     page = client.get(f"{LIST_URL}/{user_id}").get_data(as_text=True)
     assert "4.0" in page and "Good" in page
+
+
+# Where the customer lands after a review.
+
+
+def test_review_sends_the_customer_back_to_the_job(client, login, review_fixture):
+    login(review_fixture["customer"])
+    job = review_fixture["job"]
+    client.post(f"/reviews/jobs/{job}/done")
+    response = client.post(f"/reviews/jobs/{job}/tradespeople/{review_fixture['worker']}", data={"stars": "5"})
+    assert response.status_code == 302
+    assert response.location.endswith(f"/reviews/jobs/{job}")
+
+
+def test_review_works_for_a_tradesperson_who_has_no_approved_trade_anymore(app, client, login, review_fixture):
+    # Their page is a 404 now, so the redirect must not lead there.
+    with app.app_context():
+        profile = db.session.scalar(db.select(TradespersonProfile).filter_by(user_id=review_fixture["worker"]))
+        profile.trades[0].status = TRADE_PENDING
+        db.session.commit()
+    login(review_fixture["customer"])
+    job = review_fixture["job"]
+    client.post(f"/reviews/jobs/{job}/done")
+    response = client.post(
+        f"/reviews/jobs/{job}/tradespeople/{review_fixture['worker']}",
+        data={"stars": "5"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert response.request.path == f"/reviews/jobs/{job}"
+    with app.app_context():
+        assert db.session.scalar(db.select(Review).where(Review.job_id == job)).stars == 5

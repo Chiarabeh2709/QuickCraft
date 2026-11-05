@@ -89,7 +89,8 @@ def add_review(job_id, tradesperson_id):
         )
     )
     db.session.commit()
-    return redirect(url_for("reviews.tradesperson_profile", tradesperson_id=tradesperson_id))
+    # Back to the job, because the tradesperson's own page is a 404 once they have no approved trade.
+    return redirect(url_for("reviews.job_reviews", job_id=job.id))
 
 
 def listed_profiles(search=""):
@@ -123,8 +124,8 @@ def search_tradespeople():
 
 def verified_profile_or_404(user_id):
     profile = db.session.scalar(db.select(TradespersonProfile).filter_by(user_id=user_id))
-    # 404, not 403: a pending or rejected tradesperson should look like they do not exist.
-    if profile is None or not profile.user.is_verified_tradesperson:
+    # 404, not 403: someone who is not listed should look like they do not exist.
+    if profile is None or not profile.user.is_verified_tradesperson or not profile.approved_trades:
         abort(404)
     return profile
 
