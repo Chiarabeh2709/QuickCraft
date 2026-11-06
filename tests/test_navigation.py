@@ -42,7 +42,7 @@ CONFIRMED_CUSTOMER = {
     "Post a job": "/jobs/new",
     "My jobs": "/jobs/mine",
     "Find tradespeople": "/profiles/",
-    "My appointments": "/bookings/mine",
+    "My appointments": "/bookings/appointments",
     "Tradespeople reviews": "/reviews/tradespeople",
 }
 VERIFIED_TRADESPERSON = {

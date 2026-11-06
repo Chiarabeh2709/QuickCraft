@@ -109,7 +109,7 @@ def test_seed_runs_on_an_empty_database(seeded):
         "Job": 12,
         "JobTrade": 16,
         "Quote": 8,
-        "Booking": 3,
+        "Booking": 6,
         "Project": 1,
         "ProjectSchedule": 2,
         "ProjectComment": 4,
@@ -481,10 +481,30 @@ def test_customer_contact_stays_hidden_on_an_open_job(seeded, client):
 
 def test_bookings_match_a_real_weekly_slot(seeded):
     with seeded.app_context():
-        now = now_local()
         for booking in db.session.scalars(db.select(Booking)):
+            starts_at = booking.starts_at
             slots = booking.tradesperson.profile.availability
-            assert any(booking.starts_at in upcoming_starts(slot, now) for slot in slots)
+            assert any(s.weekday == starts_at.weekday() and s.start_time == starts_at.time() for s in slots)
+
+
+def test_every_accepted_quote_has_its_appointment(seeded):
+    with seeded.app_context():
+        accepted = db.session.scalars(db.select(Quote).filter_by(status=QUOTE_ACCEPTED)).all()
+        assert len(accepted) == 4
+        for quote in accepted:
+            bookings = [b for b in quote.job_trade.job.bookings if b.tradesperson_id == quote.tradesperson_id]
+            assert len(bookings) == 1
+            assert bookings[0].starts_at.date() >= quote.earliest_start
+
+
+def test_project_timeline_matches_the_appointments(seeded):
+    with seeded.app_context():
+        job = db.session.scalar(db.select(Job).filter_by(title=JOBS["kitchen"]["title"]))
+        starts = {booking.tradesperson_id: booking.starts_at.date() for booking in job.bookings}
+        for schedule in job.project.schedules:
+            assert schedule.start_date == starts[schedule.tradesperson_id]
+        by_trade = {schedule.job_trade.trade: schedule for schedule in job.project.schedules}
+        assert by_trade["Tiler"].end_date < by_trade["Carpenter"].start_date
 
 
 def test_small_open_job_offers_free_slots(seeded, client):

@@ -662,11 +662,17 @@ def test_customer_only_sees_own_bookings(client, customer_id, make_user, make_tr
     make_user(email="other@example.com", email_verified=True)
 
     login("other@example.com")
-    assert "Leaky tap" not in client.get("/bookings/mine").get_data(as_text=True)
+    assert "Leaky tap" not in client.get("/bookings/appointments").get_data(as_text=True)
 
     client.post("/auth/logout")
     login(ANNA)
-    assert "Leaky tap" in client.get("/bookings/mine").get_data(as_text=True)
+    assert "Leaky tap" in client.get("/bookings/appointments").get_data(as_text=True)
+
+
+def test_old_address_of_my_bookings_leads_to_my_appointments(client, customer_id, login):
+    login(ANNA)
+
+    assert client.get("/bookings/mine").location == "/bookings/appointments"
 
 
 def test_my_bookings_requires_login(client):
@@ -806,8 +812,8 @@ def test_appointments_require_login(client):
     assert_sent_to_login(client.get("/bookings/appointments"))
 
 
-@pytest.mark.parametrize("role, status", NOT_VERIFIED_TRADESPERSON)
-def test_only_verified_tradespeople_have_appointments(client, make_user, login, role, status):
+@pytest.mark.parametrize("role, status", [entry for entry in NOT_VERIFIED_TRADESPERSON if entry[0] != ROLE_CUSTOMER])
+def test_only_customers_and_verified_tradespeople_have_appointments(client, make_user, login, role, status):
     make_user(email="someone@example.com", role=role, status=status, email_verified=True)
     login("someone@example.com")
 
