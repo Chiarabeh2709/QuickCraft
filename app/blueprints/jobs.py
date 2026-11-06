@@ -7,6 +7,7 @@ from app.decorators import confirmed_customer_required, verified_tradesperson_re
 from app.extensions import db
 from app.models import (
     JOB_CANCELLED,
+    JOB_IN_PROGRESS,
     JOB_OPEN,
     QUOTE_ACCEPTED,
     TRADES,
@@ -68,6 +69,17 @@ def build_job(trades):
 def has_accepted_quote(job):
     query = db.select(Quote.id).join(JobTrade).where(JobTrade.job_id == job.id, Quote.status == QUOTE_ACCEPTED)
     return db.session.scalar(query.limit(1)) is not None
+
+
+@bp.app_template_global()
+def missing_appointments(job):
+    """Accepted quotes on a running job whose tradesperson has no appointment, because it was cancelled."""
+    if job.status not in (JOB_OPEN, JOB_IN_PROGRESS):
+        return []
+    # Worked out, not stored: on a multi-trade job one appointment can be missing while another stands.
+    booked = {booking.tradesperson_id for booking in job.bookings}
+    accepted = [quote for job_trade in job.trades for quote in job_trade.quotes if quote.status == QUOTE_ACCEPTED]
+    return [quote for quote in accepted if quote.tradesperson_id not in booked]
 
 
 # --- Customer: post and manage own jobs ---------------------------------------------------

@@ -1,11 +1,12 @@
-# Feature 4: confirming an appointment while accepting a quote.
+# Feature 4: confirming an appointment while accepting a quote, and choosing a new one after a cancellation.
 from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from app.blueprints.bookings import APPOINTMENT_LENGTH, WEEKDAYS, has_overlap, now_local
-from app.blueprints.quotes import accept_quote, can_accept
+from app.blueprints.jobs import missing_appointments
+from app.blueprints.quotes import accept_quote, can_accept, save_appointment
 from app.decorators import confirmed_customer_required
 from app.extensions import db
 from app.models import Quote
@@ -50,20 +51,39 @@ def time_error(quote, starts_at):
     return None
 
 
-def success_message(quote):
+def success_message(quote, done):
     if quote.tradesperson.profile.availability:
-        return "You accepted this quote and confirmed the appointment."
-    return f"You accepted this quote. {NEEDS_CONFIRMATION}"
+        return f"{done} and confirmed the appointment."
+    return f"{done}. {NEEDS_CONFIRMATION}"
+
+
+def own_quote(quote_id):
+    quote = db.get_or_404(Quote, quote_id)
+    # Ownership check: only the customer of the job can set an appointment for it.
+    if quote.job_trade.job.customer_id != current_user.id:
+        abort(403)
+    return quote
+
+
+def show_form(quote, rebooking=False):
+    slots = sorted(quote.tradesperson.profile.availability, key=lambda slot: (slot.weekday, slot.start_time))
+    return render_template(
+        "appointments/confirm.html",
+        quote=quote,
+        job=quote.job_trade.job,
+        slots=slots,
+        weekdays=WEEKDAYS,
+        default_date=max(quote.earliest_start, now_local().date()),
+        note=NEEDS_CONFIRMATION,
+        rebooking=rebooking,
+    )
 
 
 @bp.route("/quote/<int:quote_id>", methods=["GET", "POST"])
 @confirmed_customer_required
 def confirm(quote_id):
-    quote = db.get_or_404(Quote, quote_id)
+    quote = own_quote(quote_id)
     job = quote.job_trade.job
-    # Ownership check: only the customer of the job can accept a quote for it.
-    if job.customer_id != current_user.id:
-        abort(403)
     if not can_accept(quote):
         flash("This quote can no longer be accepted.", "warning")
         return redirect(url_for("quotes.compare", job_id=job.id))
@@ -73,18 +93,31 @@ def confirm(quote_id):
         error = time_error(quote, starts_at)
         if error is None:
             if accept_quote(quote, starts_at):
-                flash(success_message(quote), "success")
+                flash(success_message(quote, "You accepted this quote"), "success")
                 return redirect(url_for("jobs.my_job", job_id=job.id))
             error = "This quote or time was just taken. Please check and try again."
         flash(error, "danger")
 
-    slots = sorted(quote.tradesperson.profile.availability, key=lambda slot: (slot.weekday, slot.start_time))
-    return render_template(
-        "appointments/confirm.html",
-        quote=quote,
-        job=job,
-        slots=slots,
-        weekdays=WEEKDAYS,
-        default_date=max(quote.earliest_start, now_local().date()),
-        note=NEEDS_CONFIRMATION,
-    )
+    return show_form(quote)
+
+
+@bp.route("/quote/<int:quote_id>/rebook", methods=["GET", "POST"])
+@confirmed_customer_required
+def rebook(quote_id):
+    quote = own_quote(quote_id)
+    job = quote.job_trade.job
+    if quote not in missing_appointments(job):
+        flash("This job does not need a new appointment.", "warning")
+        return redirect(url_for("jobs.my_job", job_id=job.id))
+
+    if request.method == "POST":
+        starts_at = requested_start()
+        error = time_error(quote, starts_at)
+        if error is None:
+            if save_appointment(quote, starts_at):
+                flash(success_message(quote, "You chose a new date"), "success")
+                return redirect(url_for("jobs.my_job", job_id=job.id))
+            error = "This time was just taken. Please choose another one."
+        flash(error, "danger")
+
+    return show_form(quote, rebooking=True)

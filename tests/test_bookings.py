@@ -775,12 +775,12 @@ def test_only_customers_can_cancel(app, client, customer_id, make_tradesperson, 
     assert booking_count(app) == 1
 
 
-def test_booked_tradesperson_cannot_cancel(app, client, customer_id, make_tradesperson, make_job, add_booking, login):
+def test_booked_tradesperson_can_cancel(app, client, customer_id, make_tradesperson, make_job, add_booking, login):
     booking_id = add_booking(make_job(customer_id), make_tradesperson())
     login(BEN)
 
-    assert client.post(f"/bookings/{booking_id}/cancel").status_code == 403
-    assert booking_count(app) == 1
+    assert client.post(f"/bookings/{booking_id}/cancel").status_code == 302
+    assert booking_count(app) == 0
 
 
 # --- Tradesperson: appointments -----------------------------------------------------------

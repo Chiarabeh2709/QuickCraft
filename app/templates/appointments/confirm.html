@@ -6,7 +6,7 @@
 {% block content %}
 <div class="narrow-form">
   <p><a href="{{ url_for('quotes.compare', job_id=job.id) }}">&larr; Quotes</a></p>
-  <h1 class="h3">Accept quote and confirm appointment</h1>
+  <h1 class="h3">{{ "Choose a new appointment" if rebooking else "Accept quote and confirm appointment" }}</h1>
   <p class="text-body-secondary">{{ job.title }} &middot; {{ job.city }}</p>
   <p>
     <strong>{{ quote.tradesperson.profile.company_name }}</strong><br>
@@ -36,7 +36,7 @@
       <input class="form-control" id="time" name="time" type="time" required
              value="{{ request.form.get('time', '') }}">
     </div>
-    <button class="btn btn-primary w-100" type="submit">Accept quote</button>
+    <button class="btn btn-primary w-100" type="submit">{{ "Confirm appointment" if rebooking else "Accept quote" }}</button>
   </form>
 </div>
 {% endblock %}

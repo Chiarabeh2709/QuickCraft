@@ -121,9 +121,8 @@ def delete_slot(slot_id):
 
 
 def can_cancel(booking):
-    # An appointment from a quote cannot be cancelled: the job would reopen with its quote still accepted.
-    job = booking.job
-    return booking.starts_at > now_local() and job.status == JOB_IN_PROGRESS and not has_accepted_quote(job)
+    # A multi-trade job can still be open while one of its appointments stands.
+    return booking.starts_at > now_local() and booking.job.status in (JOB_OPEN, JOB_IN_PROGRESS)
 
 
 def show_appointments(query):
@@ -268,20 +267,31 @@ def my_bookings():
     return redirect(url_for("bookings.appointments"))
 
 
+def remove_booking(booking):
+    job = booking.job
+    # With an accepted quote the job stays taken and only needs a new date. A booked slot has no quote to
+    # keep, so the job reopens. Deleting the row frees the time; without a quote it also hides the contact data.
+    keeps_quote = has_accepted_quote(job)
+    db.session.delete(booking)
+    if not keeps_quote:
+        job.status = JOB_OPEN
+    db.session.commit()
+    return keeps_quote
+
+
 @bp.route("/<int:booking_id>/cancel", methods=["POST"])
-@confirmed_customer_required
+@login_required
 def cancel(booking_id):
     booking = db.get_or_404(Booking, booking_id)
     job = booking.job
-    # Ownership check: customers can only cancel their own bookings.
-    if job.customer_id != current_user.id:
+    # Ownership check: only the two people this appointment belongs to can cancel it.
+    if current_user.id not in (job.customer_id, booking.tradesperson_id):
         abort(403)
     if not can_cancel(booking):
-        flash("Only upcoming booked slots can be cancelled.", "warning")
+        flash("Only upcoming appointments of running jobs can be cancelled.", "warning")
         return redirect(url_for("bookings.appointments"))
-    # Deleting the row frees the slot and also hides the customer's contact data again.
-    db.session.delete(booking)
-    job.status = JOB_OPEN
-    db.session.commit()
-    flash("Your booking was cancelled.", "success")
+    if remove_booking(booking):
+        flash("The appointment was cancelled. The customer now needs to choose a new date and time.", "success")
+    else:
+        flash("The booking was cancelled and the job is open again.", "success")
     return redirect(url_for("bookings.appointments"))
