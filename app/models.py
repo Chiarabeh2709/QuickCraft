@@ -149,6 +149,7 @@ class Job(db.Model):
     bookings = db.relationship("Booking", backref="job", cascade="all, delete-orphan")
     reviews = db.relationship("Review", backref="job", cascade="all, delete-orphan")
     project = db.relationship("Project", backref="job", uselist=False, cascade="all, delete-orphan")
+    threads = db.relationship("MessageThread", backref="job", cascade="all, delete-orphan")
 
 
 class JobTrade(db.Model):
@@ -222,6 +223,35 @@ class ProjectComment(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     author = db.relationship("User")
+
+
+class MessageThread(db.Model):
+    # Its own table because consent and "last seen" belong to the conversation, not to one message.
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.ForeignKey("job.id"), nullable=False)
+    tradesperson_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # The customer's consent for this one tradesperson on this one job. Empty means no consent.
+    phone_shared_at = db.Column(db.DateTime)
+    customer_last_seen_at = db.Column(db.DateTime)
+    tradesperson_last_seen_at = db.Column(db.DateTime)
+
+    tradesperson = db.relationship("User")
+    messages = db.relationship(
+        "Message", backref="thread", cascade="all, delete-orphan", order_by="Message.id"
+    )
+
+    __table_args__ = (db.UniqueConstraint("job_id", "tradesperson_id"),)
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.ForeignKey("message_thread.id"), nullable=False)
+    sender_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    sender = db.relationship("User")
 
 
 class Review(db.Model):

@@ -1,0 +1,28 @@
+{% from "_forms.html" import csrf_field %}
+{# Needs: job, thread, writable, tradesperson_id. Jinja escapes every message, so HTML stays plain text. #}
+{% if thread %}
+  {% for message in thread.messages %}
+    <div class="card mb-2">
+      <div class="card-body py-2">
+        <strong>{{ message.sender | display_name }}</strong>
+        <span class="text-body-secondary small">{{ message.created_at.strftime("%d %b %Y, %H:%M") }} UTC</span>
+        <p class="mb-0" style="white-space: pre-line">{{ message.body }}</p>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-body-secondary">No messages yet.</p>
+{% endif %}
+
+{% if writable %}
+  <form method="post" action="{{ url_for('messages.conversation', job_id=job.id, tradesperson_id=tradesperson_id) }}">
+    {{ csrf_field() }}
+    <div class="mb-2">
+      <label class="form-label" for="body">Your message</label>
+      <textarea class="form-control" id="body" name="body" rows="3" maxlength="1000" required>{{ request.form.get("body", "") }}</textarea>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Send</button>
+  </form>
+{% else %}
+  <p class="text-body-secondary">This conversation is read-only.</p>
+{% endif %}

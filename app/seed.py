@@ -25,6 +25,8 @@ from app.models import (
     Booking,
     Job,
     JobTrade,
+    Message,
+    MessageThread,
     Project,
     ProjectComment,
     ProjectSchedule,
@@ -33,6 +35,7 @@ from app.models import (
     TradespersonProfile,
     TradespersonTrade,
     User,
+    utcnow,
 )
 
 # Public on purpose: these accounts are fake, and DEMO.md lists them. The admin never uses this password.
@@ -427,6 +430,24 @@ def create_review(jobs, people):
     )
 
 
+def create_thread(jobs, people, customers):
+    # The tradesperson last looked before the customer's latest message, so that one shows as new.
+    emma, harbor = customers["emma"], people["harbor"]
+    thread = MessageThread(
+        job=jobs["bathroom"],
+        tradesperson=harbor,
+        customer_last_seen_at=utcnow(),
+        tradesperson_last_seen_at=utcnow() - timedelta(days=1, hours=12),
+    )
+    for days_ago, sender, body in (
+        (2, emma, "Hello, does your price include removing the old shower tray?"),
+        (2, harbor, "Yes, removing and disposing of it is included."),
+        (1, emma, "Great. Could you also check the water pressure while you are here?"),
+    ):
+        thread.messages.append(Message(sender=sender, body=body, created_at=utcnow() - timedelta(days=days_ago)))
+    db.session.add(thread)
+
+
 def create_demo_data():
     # Hashed once: hashing is the slow part, and every demo account has the same password anyway.
     password_hash = generate_password_hash(DEMO_PASSWORD)
@@ -438,6 +459,7 @@ def create_demo_data():
     create_bookings(jobs, people)
     create_project(jobs, people, customers, today)
     create_review(jobs, people)
+    create_thread(jobs, people, customers)
 
 
 def has_users_besides_admin():
