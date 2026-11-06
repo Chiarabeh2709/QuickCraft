@@ -3,6 +3,7 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user
 from sqlalchemy import func
 
+from app.blueprints.messages import can_write, find_thread, is_eligible, mark_seen
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
@@ -206,4 +207,15 @@ def detail(job_id):
         abort(404)
     # Only their own: on a multi-trade job the other trades' appointments stay with the customer.
     my_bookings = [booking for booking in job.bookings if booking.tradesperson_id == current_user.id]
-    return render_template("jobs/detail.html", job=job, show_contact=show_contact, my_bookings=my_bookings)
+    thread = find_thread(job.id, current_user.id)
+    mark_seen(thread)
+    return render_template(
+        "jobs/detail.html",
+        job=job,
+        show_contact=show_contact,
+        my_bookings=my_bookings,
+        thread=thread,
+        has_thread_access=is_eligible(job, current_user),
+        writable=can_write(job, current_user),
+        tradesperson_id=current_user.id,
+    )

@@ -57,4 +57,10 @@
     The customer's phone number and address are shared once they accept your quote or book your slot.
   </p>
 {% endif %}
+
+{% if has_thread_access %}
+  <h2 class="h5 mt-4">Messages</h2>
+  {# No phone number here: a number shared by consent only ever appears on the conversation page. #}
+  {% include "messages/_thread.html" %}
+{% endif %}
 {% endblock %}

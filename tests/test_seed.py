@@ -26,6 +26,8 @@ from app.models import (
     Booking,
     Job,
     JobTrade,
+    Message,
+    MessageThread,
     Project,
     ProjectComment,
     ProjectSchedule,
@@ -52,6 +54,8 @@ ALL_MODELS = (
     ProjectSchedule,
     ProjectComment,
     Review,
+    MessageThread,
+    Message,
 )
 CITIES = {"Berlin", "Hamburg", "Munich", "Cologne"}
 VERIFIED = [key for key, data in TRADESPEOPLE.items() if data.get("status") is None]
@@ -114,6 +118,8 @@ def test_seed_runs_on_an_empty_database(seeded):
         "ProjectSchedule": 2,
         "ProjectComment": 4,
         "Review": 1,
+        "MessageThread": 1,
+        "Message": 3,
     }
 
 
@@ -505,6 +511,15 @@ def test_project_timeline_matches_the_appointments(seeded):
             assert schedule.start_date == starts[schedule.tradesperson_id]
         by_trade = {schedule.job_trade.trade: schedule for schedule in job.project.schedules}
         assert by_trade["Tiler"].end_date < by_trade["Carpenter"].start_date
+
+
+def test_demo_thread_shows_a_new_message_to_the_tradesperson_only(seeded, client):
+    log_in(client, TRADESPEOPLE["harbor"]["email"])
+    assert "1 new" in page(client, "/messages/")
+
+    client.post("/auth/logout")
+    log_in(client, customer_email("emma"))
+    assert "1 new" not in page(client, "/messages/")
 
 
 def test_small_open_job_offers_free_slots(seeded, client):
