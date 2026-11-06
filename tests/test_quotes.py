@@ -125,6 +125,11 @@ def quote_form(app, job_id, trade="Plumber", **changes):
     return {**form, **changes}
 
 
+def accept(client, quote_id, **options):
+    data = {"date": START.isoformat(), "time": "10:00"}
+    return client.post(f"/appointments/quote/{quote_id}", data=data, **options)
+
+
 def quote_count(app):
     with app.app_context():
         return db.session.scalar(db.select(db.func.count(Quote.id)))
@@ -569,7 +574,7 @@ def test_accepting_on_a_single_trade_job(app, client, customer_id, make_tradespe
     loser = add_quote(job_id, make_tradesperson(email=CARA))
     login(ANNA)
 
-    client.post(f"/quotes/{winner}/accept")
+    accept(client, winner)
 
     assert quote_status(app, winner) == QUOTE_ACCEPTED
     assert quote_status(app, loser) == QUOTE_REJECTED
@@ -581,8 +586,8 @@ def test_quote_cannot_be_accepted_twice(app, client, customer_id, make_tradesper
     quote_id = add_quote(job_id, make_tradesperson())
     login(ANNA)
 
-    client.post(f"/quotes/{quote_id}/accept")
-    response = client.post(f"/quotes/{quote_id}/accept", follow_redirects=True)
+    accept(client, quote_id)
+    response = accept(client, quote_id, follow_redirects=True)
 
     assert "no longer be accepted" in response.get_data(as_text=True)
     assert quote_status(app, quote_id) == QUOTE_ACCEPTED
@@ -594,8 +599,8 @@ def test_second_quote_of_a_trade_cannot_be_accepted_after_the_first(app, client,
     second = add_quote(job_id, make_tradesperson(email=CARA))
     login(ANNA)
 
-    client.post(f"/quotes/{first}/accept")
-    client.post(f"/quotes/{second}/accept")
+    accept(client, first)
+    accept(client, second)
 
     assert quote_status(app, first) == QUOTE_ACCEPTED
     assert quote_status(app, second) == QUOTE_REJECTED
@@ -603,13 +608,13 @@ def test_second_quote_of_a_trade_cannot_be_accepted_after_the_first(app, client,
 
 def test_accept_that_lost_a_race_changes_nothing(app, client, customer_id, make_tradesperson, make_job, add_quote, login, monkeypatch):
     # Pretends the check ran just before another request won, so only the UPDATE can stop this one.
-    monkeypatch.setattr("app.blueprints.quotes.can_accept", lambda quote: True)
+    monkeypatch.setattr("app.blueprints.appointments.can_accept", lambda quote: True)
     job_id = make_job(customer_id)
     quote_id = add_quote(job_id, make_tradesperson(), status=QUOTE_REJECTED)
     other = add_quote(job_id, make_tradesperson(email=CARA))
     login(ANNA)
 
-    client.post(f"/quotes/{quote_id}/accept")
+    accept(client, quote_id)
 
     assert quote_status(app, quote_id) == QUOTE_REJECTED
     assert quote_status(app, other) == QUOTE_PENDING
@@ -623,9 +628,9 @@ def test_nothing_can_be_accepted_on_a_closed_job(app, client, customer_id, make_
     login(ANNA)
 
     page = client.get(f"/quotes/job/{job_id}").get_data(as_text=True)
-    client.post(f"/quotes/{quote_id}/accept")
+    accept(client, quote_id)
 
-    assert f"/quotes/{quote_id}/accept" not in page
+    assert f"/appointments/quote/{quote_id}" not in page
     assert quote_status(app, quote_id) == QUOTE_PENDING
     assert job_status(app, job_id) == status
 
@@ -634,7 +639,7 @@ def test_rejected_quote_cannot_be_accepted(app, client, customer_id, make_trades
     quote_id = add_quote(make_job(customer_id), make_tradesperson(), status=QUOTE_REJECTED)
     login(ANNA)
 
-    client.post(f"/quotes/{quote_id}/accept")
+    accept(client, quote_id)
 
     assert quote_status(app, quote_id) == QUOTE_REJECTED
 
@@ -647,7 +652,7 @@ def test_quote_of_a_no_longer_verified_tradesperson_cannot_be_accepted(app, clie
         db.session.commit()
     login(ANNA)
 
-    client.post(f"/quotes/{quote_id}/accept")
+    accept(client, quote_id)
 
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
@@ -658,7 +663,7 @@ def test_customer_cannot_accept_on_somebody_elses_job(app, client, customer_id, 
     make_user(email="other@example.com", email_verified=True)
     login("other@example.com")
 
-    assert client.post(f"/quotes/{quote_id}/accept").status_code == 403
+    assert accept(client, quote_id).status_code == 403
     assert quote_status(app, quote_id) == QUOTE_PENDING
     assert job_status(app, job_id) == JOB_OPEN
 
@@ -667,7 +672,7 @@ def test_tradesperson_cannot_accept_own_quote(app, client, customer_id, make_tra
     quote_id = add_quote(make_job(customer_id), make_tradesperson())
     login(BEN)
 
-    assert client.post(f"/quotes/{quote_id}/accept").status_code == 403
+    assert accept(client, quote_id).status_code == 403
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
 
@@ -677,7 +682,7 @@ def test_only_customers_can_accept(app, client, customer_id, make_tradesperson, 
     make_user(email="someone@example.com", role=role, status=status, email_verified=True)
     login("someone@example.com")
 
-    assert client.post(f"/quotes/{quote_id}/accept").status_code == 403
+    assert accept(client, quote_id).status_code == 403
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
 
@@ -685,29 +690,29 @@ def test_unconfirmed_customer_cannot_accept(app, client, make_user, make_tradesp
     quote_id = add_quote(make_job(make_user(email="new@example.com")), make_tradesperson())
     login("new@example.com")
 
-    assert "confirm" in client.post(f"/quotes/{quote_id}/accept").location
+    assert "confirm" in accept(client, quote_id).location
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
 
 def test_anonymous_visitor_cannot_accept(app, client, customer_id, make_tradesperson, make_job, add_quote):
     quote_id = add_quote(make_job(customer_id), make_tradesperson())
 
-    assert_sent_to_login(client.post(f"/quotes/{quote_id}/accept"))
+    assert_sent_to_login(accept(client, quote_id))
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
 
-def test_accept_needs_post(app, client, customer_id, make_tradesperson, make_job, add_quote, login):
+def test_opening_the_accept_form_changes_nothing(app, client, customer_id, make_tradesperson, make_job, add_quote, login):
     quote_id = add_quote(make_job(customer_id), make_tradesperson())
     login(ANNA)
 
-    assert client.get(f"/quotes/{quote_id}/accept").status_code == 405
+    assert client.get(f"/appointments/quote/{quote_id}").status_code == 200
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
 
 def test_accept_unknown_quote_is_not_found(client, customer_id, login):
     login(ANNA)
 
-    assert client.post("/quotes/999/accept").status_code == 404
+    assert accept(client, 999).status_code == 404
 
 
 # --- Accepting: multi trade ---------------------------------------------------------------
@@ -726,7 +731,7 @@ def test_accepting_only_rejects_quotes_of_the_same_trade(app, client, multi_trad
     job_id, plumber_a, plumber_b, tiler = multi_trade
     login(ANNA)
 
-    client.post(f"/quotes/{plumber_a}/accept")
+    accept(client, plumber_a)
 
     assert quote_status(app, plumber_a) == QUOTE_ACCEPTED
     assert quote_status(app, plumber_b) == QUOTE_REJECTED
@@ -737,10 +742,10 @@ def test_multi_trade_job_stays_open_until_every_trade_is_filled(app, client, mul
     job_id, plumber_a, _, tiler = multi_trade
     login(ANNA)
 
-    client.post(f"/quotes/{plumber_a}/accept")
+    accept(client, plumber_a)
     assert job_status(app, job_id) == JOB_OPEN
 
-    client.post(f"/quotes/{tiler}/accept")
+    accept(client, tiler)
     assert job_status(app, job_id) == JOB_IN_PROGRESS
 
 
@@ -769,7 +774,7 @@ def test_open_trade_of_a_partly_filled_job_can_still_get_quotes(app, client, cus
 def test_partly_filled_job_cannot_be_cancelled(app, client, multi_trade, login):
     job_id, plumber_a, _, _ = multi_trade
     login(ANNA)
-    client.post(f"/quotes/{plumber_a}/accept")
+    accept(client, plumber_a)
 
     client.post(f"/jobs/{job_id}/cancel")
 
@@ -800,7 +805,7 @@ def test_quote_cannot_be_accepted_while_the_job_is_booked(app, client, customer_
         db.session.commit()
     login(ANNA)
 
-    client.post(f"/quotes/{quote_id}/accept")
+    accept(client, quote_id)
 
     assert quote_status(app, quote_id) == QUOTE_PENDING
 
@@ -818,7 +823,7 @@ def test_accepting_shows_contact_data_to_that_tradesperson_only(client, customer
 
     client.post("/auth/logout")
     login(ANNA)
-    client.post(f"/quotes/{winner}/accept")
+    accept(client, winner)
 
     client.post("/auth/logout")
     login(BEN)
@@ -834,7 +839,7 @@ def test_accepting_shows_contact_data_to_that_tradesperson_only(client, customer
 def test_multi_trade_contact_data_stays_hidden_from_tradespeople_still_pending(client, multi_trade, login):
     job_id, plumber_a, _, _ = multi_trade
     login(ANNA)
-    client.post(f"/quotes/{plumber_a}/accept")
+    accept(client, plumber_a)
 
     client.post("/auth/logout")
     login("tia@example.com")
@@ -859,7 +864,7 @@ def test_quote_pages_show_no_contact_data(client, customer_id, make_tradesperson
         (BEN, "/quotes/job/{other_job}/new"),
         (BEN, "/quotes/{quote_id}/edit"),
         (BEN, "/quotes/{quote_id}/withdraw"),
-        (ANNA, "/quotes/{quote_id}/accept"),
+        (ANNA, "/appointments/quote/{quote_id}"),
     ],
 )
 def test_every_form_checks_csrf_token(app, client, customer_id, make_tradesperson, make_job, add_quote, login, email, url):

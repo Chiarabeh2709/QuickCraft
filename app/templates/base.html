@@ -38,7 +38,7 @@
             {{ nav_item("jobs.new", "Post a job") }}
             {{ nav_item("jobs.my_jobs", "My jobs") }}
             {{ nav_item("profiles.search", "Find tradespeople") }}
-            {{ nav_item("bookings.my_bookings", "My appointments") }}
+            {{ nav_item("bookings.appointments", "My appointments") }}
             {{ nav_item("reviews.search_tradespeople", "Tradespeople reviews") }}
           {% elif current_user.is_verified_tradesperson %}
             {% set profile = current_user.profile %}

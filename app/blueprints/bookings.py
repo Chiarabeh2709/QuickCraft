@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
 from app.blueprints.jobs import has_accepted_quote, matching_jobs_query
@@ -12,6 +12,7 @@ from app.extensions import db
 from app.models import (
     JOB_IN_PROGRESS,
     JOB_OPEN,
+    ROLE_CUSTOMER,
     AvailabilitySlot,
     Booking,
     Job,
@@ -22,6 +23,8 @@ bp = Blueprint("bookings", __name__, url_prefix="/bookings")
 
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 WEEKS_AHEAD = 4
+# A booking stores only its start, so every appointment counts as this long.
+APPOINTMENT_LENGTH = timedelta(hours=2)
 # Render runs on UTC, but a slot at 09:00 means 09:00 for people in Germany.
 LOCAL_TIME = ZoneInfo("Europe/Berlin")
 
@@ -29,6 +32,16 @@ LOCAL_TIME = ZoneInfo("Europe/Berlin")
 def now_local():
     # Without timezone info, to match the plain times stored in Booking.starts_at.
     return datetime.now(LOCAL_TIME).replace(tzinfo=None)
+
+
+def has_overlap(tradesperson_id, starts_at):
+    # Touching is fine: 09:00-11:00 and 11:00-13:00 do not overlap.
+    query = db.select(Booking.id).where(
+        Booking.tradesperson_id == tradesperson_id,
+        Booking.starts_at > starts_at - APPOINTMENT_LENGTH,
+        Booking.starts_at < starts_at + APPOINTMENT_LENGTH,
+    )
+    return db.session.scalar(query.limit(1)) is not None
 
 
 # --- Tradesperson: weekly availability ----------------------------------------------------
@@ -61,11 +74,12 @@ def slot_errors(profile, weekday, start, end):
 
 def has_upcoming_booking(slot):
     # A booking stores no end time, so a replacement slot could overlap it without anyone noticing.
+    # An appointment from a quote can start anywhere in the slot, not only at its start.
     query = db.select(Booking.starts_at).where(
         Booking.tradesperson_id == slot.profile.user_id, Booking.starts_at > now_local()
     )
     return any(
-        starts_at.weekday() == slot.weekday and starts_at.time() == slot.start_time
+        starts_at.weekday() == slot.weekday and slot.start_time <= starts_at.time() < slot.end_time
         for starts_at in db.session.scalars(query)
     )
 
@@ -106,15 +120,35 @@ def delete_slot(slot_id):
     return redirect(url_for("bookings.availability"))
 
 
-@bp.route("/appointments")
+def can_cancel(booking):
+    # An appointment from a quote cannot be cancelled: the job would reopen with its quote still accepted.
+    job = booking.job
+    return booking.starts_at > now_local() and job.status == JOB_IN_PROGRESS and not has_accepted_quote(job)
+
+
+def show_appointments(query):
+    upcoming = query.where(Booking.starts_at > now_local()).order_by(Booking.starts_at)
+    bookings = db.session.scalars(upcoming).all()
+    return render_template("bookings/appointments.html", bookings=bookings, can_cancel=can_cancel)
+
+
+@confirmed_customer_required
+def customer_appointments():
+    return show_appointments(db.select(Booking).join(Job).where(Job.customer_id == current_user.id))
+
+
 @verified_tradesperson_required
+def tradesperson_appointments():
+    return show_appointments(db.select(Booking).where(Booking.tradesperson_id == current_user.id))
+
+
+@bp.route("/appointments")
+@login_required
 def appointments():
-    query = (
-        db.select(Booking)
-        .where(Booking.tradesperson_id == current_user.id, Booking.starts_at > now_local())
-        .order_by(Booking.starts_at)
-    )
-    return render_template("bookings/appointments.html", bookings=db.session.scalars(query).all())
+    # One address for both roles; the decorators above keep each role's own access rule.
+    if current_user.role == ROLE_CUSTOMER:
+        return customer_appointments()
+    return tradesperson_appointments()
 
 
 # --- Customer: find a free slot -----------------------------------------------------------
@@ -150,10 +184,13 @@ def upcoming_starts(slot, now):
 def free_times(profile):
     """Every free (start, slot) pair of this tradesperson, soonest first."""
     query = db.select(Booking.starts_at).filter_by(tradesperson_id=profile.user_id)
-    booked = set(db.session.scalars(query))
+    booked = list(db.session.scalars(query))
     now = now_local()
     times = [
-        (start, slot) for slot in profile.availability for start in upcoming_starts(slot, now) if start not in booked
+        (start, slot)
+        for slot in profile.availability
+        for start in upcoming_starts(slot, now)
+        if all(abs(start - other) >= APPOINTMENT_LENGTH for other in booked)
     ]
     return sorted(times, key=lambda entry: entry[0])
 
@@ -216,29 +253,19 @@ def book(job_id):
     if slot is None or not slot_is_offered(slot, starts_at, job):
         flash("This slot is not available.", "warning")
         return redirect(url_for("bookings.slots", job_id=job.id))
-    if not save_booking(job, slot, starts_at):
+    if has_overlap(slot.profile.user_id, starts_at) or not save_booking(job, slot, starts_at):
         flash("Sorry, somebody else just booked this slot. Please choose another one.", "warning")
         return redirect(url_for("bookings.slots", job_id=job.id))
 
     flash("Your slot is booked.", "success")
-    return redirect(url_for("bookings.my_bookings"))
+    return redirect(url_for("bookings.appointments"))
 
 
 @bp.route("/mine")
 @confirmed_customer_required
 def my_bookings():
-    query = (
-        db.select(Booking)
-        .join(Job)
-        .where(Job.customer_id == current_user.id)
-        .order_by(Booking.starts_at.desc())
-    )
-    return render_template(
-        "bookings/my_bookings.html",
-        bookings=db.session.scalars(query).all(),
-        now=now_local(),
-        job_in_progress=JOB_IN_PROGRESS,
-    )
+    # The old address of the customer's list, which now shares one page with the tradespeople.
+    return redirect(url_for("bookings.appointments"))
 
 
 @bp.route("/<int:booking_id>/cancel", methods=["POST"])
@@ -249,12 +276,12 @@ def cancel(booking_id):
     # Ownership check: customers can only cancel their own bookings.
     if job.customer_id != current_user.id:
         abort(403)
-    if booking.starts_at <= now_local() or job.status != JOB_IN_PROGRESS:
-        flash("Only upcoming bookings can be cancelled.", "warning")
-        return redirect(url_for("bookings.my_bookings"))
+    if not can_cancel(booking):
+        flash("Only upcoming booked slots can be cancelled.", "warning")
+        return redirect(url_for("bookings.appointments"))
     # Deleting the row frees the slot and also hides the customer's contact data again.
     db.session.delete(booking)
     job.status = JOB_OPEN
     db.session.commit()
     flash("Your booking was cancelled.", "success")
-    return redirect(url_for("bookings.my_bookings"))
+    return redirect(url_for("bookings.appointments"))

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}Confirm appointment | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="narrow-form">
+  <p><a href="{{ url_for('quotes.compare', job_id=job.id) }}">&larr; Quotes</a></p>
+  <h1 class="h3">Accept quote and confirm appointment</h1>
+  <p class="text-body-secondary">{{ job.title }} &middot; {{ job.city }}</p>
+  <p>
+    <strong>{{ quote.tradesperson.profile.company_name }}</strong><br>
+    &euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start.strftime("%d %b %Y") }}
+  </p>
+
+  {% if slots %}
+    <p class="mb-1">Available at these times (an appointment takes two hours):</p>
+    <ul>
+      {% for slot in slots %}
+        <li>{{ weekdays[slot.weekday] }}, {{ slot.start_time.strftime("%H:%M") }}&ndash;{{ slot.end_time.strftime("%H:%M") }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="alert alert-info">{{ note }}</p>
+  {% endif %}
+
+  <form method="post">
+    {{ csrf_field() }}
+    <div class="mb-3">
+      <label class="form-label" for="date">Date</label>
+      <input class="form-control" id="date" name="date" type="date" required
+             value="{{ request.form.get('date', default_date.isoformat()) }}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="time">Time</label>
+      <input class="form-control" id="time" name="time" type="time" required
+             value="{{ request.form.get('time', '') }}">
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Accept quote</button>
+  </form>
+</div>
+{% endblock %}

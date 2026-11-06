@@ -97,6 +97,16 @@ def my_jobs():
     return render_template("jobs/my_jobs.html", jobs=db.session.scalars(query).all())
 
 
+@bp.route("/mine/<int:job_id>")
+@confirmed_customer_required
+def my_job(job_id):
+    job = db.get_or_404(Job, job_id)
+    # Ownership check: customers can only open their own jobs.
+    if job.customer_id != current_user.id:
+        abort(403)
+    return render_template("jobs/my_job.html", job=job)
+
+
 @bp.route("/<int:job_id>/cancel", methods=["POST"])
 @confirmed_customer_required
 def cancel(job_id):
@@ -182,4 +192,6 @@ def detail(job_id):
     in_my_list = db.session.scalar(matching_jobs_query(current_user.profile).where(Job.id == job.id))
     if not show_contact and in_my_list is None:
         abort(404)
-    return render_template("jobs/detail.html", job=job, show_contact=show_contact)
+    # Only their own: on a multi-trade job the other trades' appointments stay with the customer.
+    my_bookings = [booking for booking in job.bookings if booking.tradesperson_id == current_user.id]
+    return render_template("jobs/detail.html", job=job, show_contact=show_contact, my_bookings=my_bookings)

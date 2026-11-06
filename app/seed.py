@@ -367,17 +367,37 @@ def create_booking(job, person, slot_index, week):
     db.session.add(Booking(job=job, tradesperson=person, starts_at=upcoming_starts(slot, now_local())[week]))
 
 
+def create_past_booking(job, person):
+    # Four weeks back from a real slot, so the finished job's appointment lies after its earliest start.
+    slot = person.profile.availability[0]
+    starts_at = upcoming_starts(slot, now_local())[1] - timedelta(weeks=4)
+    db.session.add(Booking(job=job, tradesperson=person, starts_at=starts_at))
+
+
 def create_bookings(jobs, people):
     create_booking(jobs["shower"], people["harbor"], 0, 1)  # The appointment on the accepted job
     create_booking(jobs["door"], people["oak"], 0, 1)
     create_booking(jobs["switches"], people["spark"], 0, 2)
+    create_past_booking(jobs["bedroom"], people["coat"])
+
+
+def first_start_from(person, earliest):
+    """The first start of one of their weekly slots on or after this date."""
+    now = now_local()
+    starts = [start for slot in person.profile.availability for start in upcoming_starts(slot, now)]
+    return min(start for start in starts if start.date() >= earliest)
 
 
 def create_project(jobs, people, customers, today):
     job = jobs["kitchen"]
     project = Project(job=job)
-    tiles_start = today + timedelta(days=14)
-    cabinets_start = today + timedelta(days=17)
+    # The appointments set the timeline, so both always show the same dates and the tiles still come first.
+    tiles_time = first_start_from(people["tiling"], today + timedelta(days=14))
+    tiles_start = tiles_time.date()
+    cabinets_time = first_start_from(people["oak"], tiles_start + timedelta(days=3))
+    cabinets_start = cabinets_time.date()
+    db.session.add(Booking(job=job, tradesperson=people["tiling"], starts_at=tiles_time))
+    db.session.add(Booking(job=job, tradesperson=people["oak"], starts_at=cabinets_time))
     for trade, person, start, end in (
         ("Tiler", people["tiling"], tiles_start, tiles_start + timedelta(days=2)),
         ("Carpenter", people["oak"], cabinets_start, cabinets_start + timedelta(days=3)),
