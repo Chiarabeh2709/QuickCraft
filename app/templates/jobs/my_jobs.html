@@ -29,6 +29,13 @@
           &middot; {{ booking.tradesperson.profile.company_name }}
         </p>
       {% endfor %}
+      {% for quote in missing_appointments(job) %}
+        <p class="mb-2">
+          <span class="badge text-bg-warning">Appointment needed</span>
+          {{ quote.tradesperson.profile.company_name }}:
+          <a href="{{ url_for('appointments.rebook', quote_id=quote.id) }}">Choose a new appointment</a>
+        </p>
+      {% endfor %}
       {# A project needs two trades with an accepted quote; with fewer, its route answers 404. #}
       {% set accepted = namespace(trades=0) %}
       {% for job_trade in job.trades %}

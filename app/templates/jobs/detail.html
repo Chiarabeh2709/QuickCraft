@@ -31,6 +31,12 @@
   <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
 {% endif %}
 
+{% if missing_appointments(job) | selectattr("tradesperson_id", "equalto", current_user.id) | list %}
+  <p class="mt-3">
+    <span class="badge text-bg-warning">Appointment needed</span>
+    The customer still has to choose a new date and time.
+  </p>
+{% endif %}
 {% for booking in my_bookings %}
   <p class="mt-3"><strong>Your appointment:</strong> {{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</p>
 {% endfor %}

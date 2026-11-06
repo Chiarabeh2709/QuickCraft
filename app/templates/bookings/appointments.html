@@ -14,23 +14,26 @@
           <strong>{{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</strong><br>
           {{ booking.job.title }} &middot; {{ booking.tradesperson.profile.company_name }}
         </span>
-        <div class="d-flex gap-2">
-          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.my_job', job_id=booking.job_id) }}">Job</a>
-          {% if can_cancel(booking) %}
-            <form method="post" action="{{ url_for('bookings.cancel', booking_id=booking.id) }}">
-              {{ csrf_field() }}
-              <button class="btn btn-outline-danger btn-sm" type="submit">Cancel booking</button>
-            </form>
-          {% endif %}
-        </div>
       {% else %}
         <span>
           <strong>{{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</strong><br>
           {{ booking.job.title }} &middot; {{ booking.job.city }}
         </span>
-        {# Contact data stays on the job page, so its privacy rule lives in one place only. #}
-        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.detail', job_id=booking.job_id) }}">Job and contact</a>
       {% endif %}
+      <div class="d-flex gap-2">
+        {% if current_user.role == "customer" %}
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.my_job', job_id=booking.job_id) }}">Job</a>
+        {% else %}
+          {# Contact data stays on the job page, so its privacy rule lives in one place only. #}
+          <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.detail', job_id=booking.job_id) }}">Job and contact</a>
+        {% endif %}
+        {% if can_cancel(booking) %}
+          <form method="post" action="{{ url_for('bookings.cancel', booking_id=booking.id) }}">
+            {{ csrf_field() }}
+            <button class="btn btn-outline-danger btn-sm" type="submit">Cancel appointment</button>
+          </form>
+        {% endif %}
+      </div>
     </div>
   </div>
 {% else %}

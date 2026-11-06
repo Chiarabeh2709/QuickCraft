@@ -18,9 +18,17 @@
     <strong>{{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</strong>
     &middot; {{ booking.tradesperson.profile.company_name }}
   </p>
-{% else %}
-  <p class="text-body-secondary">No appointment yet.</p>
 {% endfor %}
+{% for quote in missing_appointments(job) %}
+  <p class="mb-2">
+    <span class="badge text-bg-warning">Appointment needed</span>
+    {{ quote.tradesperson.profile.company_name }}:
+    <a href="{{ url_for('appointments.rebook', quote_id=quote.id) }}">Choose a new appointment</a>
+  </p>
+{% endfor %}
+{% if not job.bookings and not missing_appointments(job) %}
+  <p class="text-body-secondary">No appointment yet.</p>
+{% endif %}
 
 <p class="mt-3"><a href="{{ url_for('quotes.compare', job_id=job.id) }}">View quotes</a></p>
 {% endblock %}

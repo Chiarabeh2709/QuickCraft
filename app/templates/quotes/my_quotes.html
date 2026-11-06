@@ -30,6 +30,9 @@
           </form>
         </div>
       {% elif quote.status == "accepted" %}
+        {% if quote in missing_appointments(job) %}
+          <p class="mb-2"><span class="badge text-bg-warning">Appointment needed</span> The customer still has to choose a new date and time.</p>
+        {% endif %}
         {# Contact data stays on the job page, so its privacy rule lives in one place only. #}
         <a class="btn btn-outline-primary btn-sm" href="{{ url_for('jobs.detail', job_id=job.id) }}">Job and contact</a>
       {% endif %}

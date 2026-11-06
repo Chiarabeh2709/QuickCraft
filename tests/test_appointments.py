@@ -441,19 +441,6 @@ def test_tradesperson_on_a_multi_trade_job_only_sees_their_own_appointment(clien
     assert SHOWN not in text_of(page)
 
 
-def test_appointment_from_a_quote_cannot_be_cancelled(app, client, accepted, login):
-    login(ANNA)
-    with app.app_context():
-        booking_id = db.session.scalar(db.select(Booking.id))
-
-    assert "Cancel booking" not in text_of(client.get("/bookings/appointments"))
-    client.post(f"/bookings/{booking_id}/cancel")
-
-    assert len(bookings_of(app, accepted)) == 1
-    with app.app_context():
-        assert db.session.get(Job, accepted).status == JOB_IN_PROGRESS
-
-
 # --- Access -------------------------------------------------------------------------------
 
 

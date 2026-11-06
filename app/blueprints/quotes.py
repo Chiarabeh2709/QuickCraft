@@ -249,6 +249,18 @@ def compare(job_id):
     return render_template("quotes/compare.html", job=job, groups=groups, acceptable=acceptable, sort=sort)
 
 
+def save_appointment(quote, starts_at):
+    """Returns False if somebody else just took this time."""
+    db.session.add(Booking(job_id=quote.job_trade.job_id, tradesperson_id=quote.tradesperson_id, starts_at=starts_at))
+    try:
+        # No "is it free?" check here: the unique constraint is the last line of defence against a double click.
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return False
+    return True
+
+
 def accept_quote(quote, starts_at):
     """Returns False if the quote was no longer pending or somebody else just took this time."""
     # The condition sits in the UPDATE itself, so of two simultaneous requests only one can win.
@@ -267,10 +279,4 @@ def accept_quote(quote, starts_at):
     if all(trade_filled(job_trade) for job_trade in job.trades):
         job.status = JOB_IN_PROGRESS
     # One commit with the quote, so an accepted quote can never end up without its appointment.
-    db.session.add(Booking(job_id=job.id, tradesperson_id=quote.tradesperson_id, starts_at=starts_at))
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-        return False
-    return True
+    return save_appointment(quote, starts_at)
