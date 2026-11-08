@@ -10,7 +10,7 @@
   <p class="text-body-secondary">{{ job.title }} &middot; {{ job.city }}</p>
   <p>
     <strong>{{ quote.tradesperson.profile.company_name }}</strong><br>
-    &euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start.strftime("%d %b %Y") }}
+    &euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start|date_format }}
   </p>
 
   {% if slots %}

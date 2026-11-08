@@ -70,7 +70,26 @@ def detail(profile_id):
     if not profile.user.is_verified_tradesperson:
         abort(404)
     is_owner = current_user.is_authenticated and current_user.id == profile.user_id
-    return render_template("profiles/detail.html", profile=profile, is_owner=is_owner)
+    from app.blueprints.bookings import free_times
+    from app.models import Review
+
+    reviews = db.session.scalars(
+        db.select(Review).where(Review.tradesperson_id == profile.user_id)
+        .order_by(Review.created_at.desc(), Review.id.desc()).limit(5)
+    ).all()
+    review_count = db.session.scalar(
+        db.select(func.count(Review.id)).where(Review.tradesperson_id == profile.user_id)
+    ) or 0
+    total_stars = db.session.scalar(
+        db.select(func.sum(Review.stars)).where(Review.tradesperson_id == profile.user_id)
+    ) or 0
+    average_rating = round(total_stars / review_count, 1) if review_count else None
+    return render_template(
+        "profiles/detail.html", profile=profile, is_owner=is_owner,
+        free_slots=free_times(profile), reviews=reviews,
+        average_rating=average_rating, review_count=review_count,
+        booking_job_id=request.args.get("job_id", type=int),
+    )
 
 
 @bp.route("/me")

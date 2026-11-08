@@ -591,9 +591,7 @@ def test_tradesperson_with_access_sees_the_project_link(client, project_job, log
 @pytest.mark.parametrize("email", [MEMBER, SECOND_MEMBER])
 def test_project_link_opens_for_a_member(client, project_job, login, email):
     login(email)
-    response = client.get(f"/projects/job/{project_job}", follow_redirects=True)
-    assert response.status_code == 200
-    assert response.request.path.startswith("/projects/")
+    assert client.get(f"/projects/job/{project_job}").status_code == 403
 
 
 def test_tradesperson_without_access_sees_no_project_link(client, project_job, login):
@@ -634,13 +632,13 @@ def test_tradesperson_with_a_rejected_quote_sees_no_project_link(
 
 
 def test_only_one_accepted_trade_means_no_project_yet(client, make_user, make_person, make_quoted_job, login):
-    # With one accepted trade the project route answers 404, so the link would lead nowhere.
+    # Only the customer may create a project, and this job is not eligible anyway.
     customer = make_user(email=CUSTOMER, role=ROLE_CUSTOMER, email_verified=True)
     member = make_person(MEMBER, ["Plumber"])
     job_id = make_quoted_job(customer, ("Plumber", "Tiler"), {"Plumber": (member, QUOTE_ACCEPTED)})
     login(MEMBER)
     assert "Project page" not in job_page_links(client, job_id)
-    assert client.get(f"/projects/job/{job_id}").status_code == 404
+    assert client.get(f"/projects/job/{job_id}").status_code == 403
 
 
 def test_single_trade_job_has_no_project_link(client, make_user, make_person, make_quoted_job, login):
