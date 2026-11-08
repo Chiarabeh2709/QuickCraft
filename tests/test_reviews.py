@@ -1,9 +1,12 @@
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 
 from app.extensions import db
 from app.models import (
+    Booking,
+    JOB_DONE,
+    JOB_IN_PROGRESS,
     JOB_OPEN,
     QUOTE_ACCEPTED,
     ROLE_ADMIN,
@@ -30,6 +33,7 @@ def review_fixture(app, make_user):
     customer = make_user(email="reviewer@example.com", email_verified=True)
     worker = make_user(email="worker@example.com", role=ROLE_TRADESPERSON, status=VERIFICATION_VERIFIED)
     other = make_user(email="other@example.com", role=ROLE_TRADESPERSON, status=VERIFICATION_VERIFIED)
+    other_customer = make_user(email="other-customer@example.com", email_verified=True)
     with app.app_context():
         db.session.add(
             TradespersonProfile(
@@ -45,8 +49,10 @@ def review_fixture(app, make_user):
         db.session.add(trade)
         db.session.flush()
         db.session.add(Quote(job_trade_id=trade.id, tradesperson_id=worker, price_cents=100, earliest_start=date.today(), status=QUOTE_ACCEPTED))
+        db.session.add(Booking(job_id=job.id, tradesperson_id=worker, starts_at=datetime.combine(date.today(), datetime.min.time())))
+        job.status = "in_progress"
         db.session.commit()
-        return {"job": job.id, "customer": "reviewer@example.com", "worker": worker, "other": other}
+        return {"job": job.id, "customer": "reviewer@example.com", "other_customer": "other-customer@example.com", "worker": worker, "other": other}
 
 
 def test_only_customer_can_mark_done(client, login, review_fixture):
@@ -55,6 +61,72 @@ def test_only_customer_can_mark_done(client, login, review_fixture):
     client.post("/auth/logout")
     login(review_fixture["customer"])
     assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 302
+
+
+@pytest.mark.parametrize("status", [JOB_OPEN, "cancelled", JOB_DONE])
+def test_mark_done_rejects_non_in_progress_jobs(client, login, review_fixture, app, status):
+    with app.app_context():
+        job = db.session.get(Job, review_fixture["job"])
+        job.status = status
+        db.session.commit()
+    login(review_fixture["customer"])
+    assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 403
+
+
+def test_mark_done_requires_a_booking(client, login, review_fixture, app):
+    with app.app_context():
+        job = db.session.get(Job, review_fixture["job"])
+        job.bookings.clear()
+        db.session.commit()
+    login(review_fixture["customer"])
+    assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 403
+
+
+def test_mark_done_does_not_require_appointment_to_have_passed(client, login, review_fixture, app):
+    with app.app_context():
+        booking = db.session.scalar(db.select(Booking).where(Booking.job_id == review_fixture["job"]))
+        booking.starts_at = datetime.combine(date.today() + timedelta(days=30), datetime.min.time())
+        db.session.commit()
+    login(review_fixture["customer"])
+    assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 302
+
+
+def test_mark_done_rejects_multi_trade_job_with_missing_appointment(client, login, review_fixture, app):
+    with app.app_context():
+        job = db.session.get(Job, review_fixture["job"])
+        second_trade = JobTrade(job_id=job.id, trade="Electrician")
+        db.session.add(second_trade)
+        db.session.flush()
+        db.session.add(
+            Quote(
+                job_trade_id=second_trade.id,
+                tradesperson_id=review_fixture["other"],
+                price_cents=200,
+                earliest_start=date.today(),
+                status=QUOTE_ACCEPTED,
+            )
+        )
+        db.session.commit()
+    login(review_fixture["customer"])
+    assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 403
+
+
+def test_other_customer_cannot_mark_done(client, login, review_fixture):
+    login(review_fixture["other_customer"])
+    assert client.post(f"/reviews/jobs/{review_fixture['job']}/done").status_code == 403
+
+
+def test_booked_tradesperson_can_be_reviewed_without_accepted_quote(client, login, review_fixture, app):
+    with app.app_context():
+        quote = db.session.scalar(db.select(Quote).where(Quote.job_trade.has(job_id=review_fixture["job"])))
+        quote.status = "pending"
+        db.session.get(Job, review_fixture["job"]).status = JOB_DONE
+        db.session.commit()
+    login(review_fixture["customer"])
+    assert client.post(
+        f"/reviews/jobs/{review_fixture['job']}/tradespeople/{review_fixture['worker']}",
+        data={"stars": "5"},
+    ).status_code == 302
 
 
 def test_review_requires_done_job_and_is_only_once(client, login, review_fixture, app):

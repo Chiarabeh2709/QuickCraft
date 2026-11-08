@@ -3,18 +3,16 @@ from datetime import date
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
-    JOB_OPEN,
     Project,
     ProjectComment,
     ProjectSchedule,
     Quote,
     QUOTE_ACCEPTED,
-    ROLE_CUSTOMER,
-    User,
 )
 
 bp = Blueprint("projects", __name__, url_prefix="/projects")
@@ -124,13 +122,23 @@ def add_comment(project_id):
 
 
 @bp.get("/job/<int:job_id>")
-@login_required
+@confirmed_customer_required
 def for_job(job_id):
     from app.models import Job
 
     job = db.session.get(Job, job_id)
     if job is None:
         abort(404)
+    # Check ownership and multi-trade eligibility before ensure_project can write.
+    if job.customer_id != current_user.id:
+        abort(403)
+    accepted_trade_count = db.session.scalar(
+        db.select(func.count(func.distinct(Quote.job_trade_id)))
+        .join(Quote.job_trade)
+        .where(Quote.job_trade.has(job_id=job.id), Quote.status == QUOTE_ACCEPTED)
+    )
+    if accepted_trade_count < 2:
+        abort(403)
     project = ensure_project(job)
     if project is None:
         abort(404)

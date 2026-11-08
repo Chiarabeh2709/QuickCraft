@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Review job · QuickCraft{% endblock %}
 {% block content %}
-<h1>Review {{ job.description }}</h1>
+<h1>Review {{ job.title }}</h1>
 {% if job.status != 'done' %}<p>Mark the job as done before leaving reviews.</p><form method="post" action="{{ url_for('reviews.mark_done', job_id=job.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Mark job as done</button></form>{% else %}
   {% for quote in job.trades|map(attribute='quotes')|sum(start=[]) if quote.status == 'accepted' %}{% endfor %}
-  {% for review in job.reviews %}<p>{{ review.tradesperson.name }}: {{ review.stars }}/5</p>{% endfor %}
-  {% for trade in job.trades %}{% for quote in trade.quotes if quote.status == 'accepted' %}{% if not (job.reviews|selectattr('tradesperson_id', 'equalto', quote.tradesperson_id)|list) %}<form method="post" class="border rounded p-3 mb-3" action="{{ url_for('reviews.add_review', job_id=job.id, tradesperson_id=quote.tradesperson_id) }}"><h2 class="h5">{{ quote.tradesperson.name }}</h2><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label">Stars <select class="form-select" name="stars" required>{% for value in range(1, 6) %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select></label><label class="form-label">Comment <textarea class="form-control" name="comment"></textarea></label><button class="btn btn-secondary">Submit review</button></form>{% endif %}{% endfor %}{% endfor %}
+  {% for review in job.reviews %}<p>{{ review.tradesperson.profile.company_name }}: {{ review.stars }}/5</p>{% endfor %}
+  {% for trade in job.trades %}{% for quote in trade.quotes if quote.status == 'accepted' %}{% if not (job.reviews|selectattr('tradesperson_id', 'equalto', quote.tradesperson_id)|list) %}<form method="post" class="border rounded p-3 mb-3" action="{{ url_for('reviews.add_review', job_id=job.id, tradesperson_id=quote.tradesperson_id) }}"><h2 class="h5">{{ quote.tradesperson.profile.company_name }}</h2><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label">Stars <select class="form-select" name="stars" required>{% for value in range(1, 6) %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select></label><label class="form-label">Comment <textarea class="form-control" name="comment"></textarea></label><button class="btn btn-secondary">Submit review</button></form>{% endif %}{% endfor %}{% endfor %}
 {% endif %}
 {% endblock %}

@@ -1,3 +1,5 @@
+from datetime import date, time, timedelta
+
 import pytest
 
 from app import create_app
@@ -12,6 +14,9 @@ from app.models import (
     TRADE_APPROVED,
     TradespersonProfile,
     TradespersonTrade,
+    AvailabilitySlot,
+    Job,
+    Review,
     User,
 )
 from config import TestConfig
@@ -202,10 +207,50 @@ def test_profile_shows_public_details_and_badge(client, make_tradesperson):
         assert expected in page
 
 
-def test_profile_has_empty_sections_for_teammates(client, make_tradesperson):
+def test_profile_has_profile_sections(client, make_tradesperson):
     page = client.get(f"/profiles/{make_tradesperson()}").get_data(as_text=True)
     assert '<section id="availability"' in page
     assert '<section id="reviews"' in page
+    assert "No upcoming availability." in page
+    assert "No reviews yet." in page
+
+
+def test_profile_shows_upcoming_availability_and_booking_link(app, client, customer, make_tradesperson):
+    profile_id = make_tradesperson()
+    with app.app_context():
+        profile = db.session.get(TradespersonProfile, profile_id)
+        profile.availability.append(AvailabilitySlot(weekday=(date.today().weekday() + 1) % 7, start_time=time(9), end_time=time(11)))
+        job = Job(customer_id=db.session.scalar(db.select(User.id).where(User.email == CUSTOMER)), city="Munich", description="Fix it", urgency="normal")
+        db.session.add(job)
+        db.session.commit()
+        job_id = job.id
+    page = client.get(f"/profiles/{profile_id}?job_id={job_id}").get_data(as_text=True)
+    assert "Book a slot" in page
+    assert (date.today() + timedelta(days=1)).strftime("%d %b %Y") in page
+
+
+def test_profile_shows_average_and_latest_reviews_with_first_name_only(app, client, make_tradesperson, make_user):
+    profile_id = make_tradesperson()
+    customer_id = make_user(email="reviewer@example.com", role=ROLE_CUSTOMER, email_verified=True)
+    with app.app_context():
+        profile = db.session.get(TradespersonProfile, profile_id)
+        job = Job(customer_id=customer_id, title="Painting", city="Cologne", description="Walls", urgency="normal")
+        db.session.add(job)
+        db.session.flush()
+        reviewer = db.session.get(User, customer_id)
+        reviewer.name = "Alice Example"
+        db.session.add(Review(job_id=job.id, tradesperson_id=profile.user_id, stars=4, comment="Great work"))
+        db.session.commit()
+    page = client.get(f"/profiles/{profile_id}").get_data(as_text=True)
+    assert "Average rating: 4.0/5 (1 review)" in page
+    assert "Alice" in page and "Example" not in page
+    assert "Great work" in page
+
+
+def test_date_format_filter_uses_shared_format(client):
+    with client.application.app_context():
+        rendered = client.application.jinja_env.filters["date_format"](date(2026, 11, 19))
+    assert rendered == "19 Nov 2026"
 
 
 def test_profile_without_description_still_loads(client, make_tradesperson):

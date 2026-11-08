@@ -36,17 +36,32 @@
   <p><a class="btn btn-outline-primary" href="{{ url_for('profiles.edit', profile_id=profile.id) }}">Edit my profile</a></p>
 {% endif %}
 
-{# ===== AVAILABILITY: empty on purpose. To be filled in by the availability and booking feature. ===== #}
 <section id="availability" class="mt-4">
   <h2 class="h5">Availability</h2>
-  <p class="text-body-secondary">Coming soon.</p>
+  {% if free_slots %}
+    <ul class="list-group">
+      {% for start, slot in free_slots[:10] %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ start|date_format }}, {{ slot.start_time.strftime("%H:%M") }}&ndash;{{ slot.end_time.strftime("%H:%M") }}</span>
+          {% if booking_job_id and current_user.is_authenticated and current_user.role == "customer" %}
+            <a href="{{ url_for('bookings.slots', job_id=booking_job_id) }}">Book a slot</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}<p class="text-body-secondary">No upcoming availability.</p>{% endif %}
 </section>
-{# ===== END AVAILABILITY ===== #}
 
-{# ===== REVIEWS: empty on purpose. To be filled in by the reviews feature. ===== #}
 <section id="reviews" class="mt-4">
   <h2 class="h5">Reviews</h2>
-  <p class="text-body-secondary">Coming soon.</p>
+  {% if average_rating is not none %}
+    <p>Average rating: {{ average_rating }}/5 ({{ review_count }} review{{ "s" if review_count != 1 }})</p>
+    {% for review in reviews %}
+      <article class="border rounded p-2 mb-2">
+        <strong>{{ review.stars }}/5</strong> &middot; {{ review.job.customer.name.split()[0] }}
+        {% if review.comment %}<p class="mb-0">{{ review.comment }}</p>{% endif %}
+      </article>
+    {% endfor %}
+  {% else %}<p class="text-body-secondary">No reviews yet.</p>{% endif %}
 </section>
-{# ===== END REVIEWS ===== #}
 {% endblock %}
