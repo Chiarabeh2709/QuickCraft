@@ -68,6 +68,18 @@ def test_project_is_created_for_two_accepted_trades(client, login, project_fixtu
         assert db.session.scalar(db.select(Project).where(Project.job_id == project_fixture["job_id"])) is not None
 
 
+def test_crafted_project_request_cannot_create_for_someone_elses_job(client, login, project_fixture, app):
+    with app.app_context():
+        db.session.delete(db.session.get(Project, project_fixture["project_id"]))
+        db.session.commit()
+        before = db.session.scalar(db.select(db.func.count(Project.id)))
+    login(project_fixture["outsider"])
+    response = client.get(f"/projects/job/{project_fixture['job_id']}")
+    assert response.status_code == 403
+    with app.app_context():
+        assert db.session.scalar(db.select(db.func.count(Project.id))) == before
+
+
 def test_project_is_visible_to_customer(client, login, project_fixture):
     login(project_fixture["customer"])
     assert client.get(f"/projects/{project_fixture['project_id']}").status_code == 200
@@ -100,7 +112,7 @@ def test_accepted_tradesperson_can_propose_dates_and_comment(client, login, proj
     ).status_code == 302
     assert client.post(f"/projects/{project_id}/comments", data={"body": "I will bring the materials."}).status_code == 302
     page = client.get(f"/projects/{project_id}")
-    assert b"2026-12-01" in page.data
+    assert b"1 Dec 2026" in page.data
     assert b"I will bring the materials." in page.data
 
 

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="py-5 text-center">
+  <h1 class="display-6">Page not found</h1>
+  <p class="text-body-secondary">The page you requested does not exist.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.home') }}">Back to home</a>
+</div>
+{% endblock %}

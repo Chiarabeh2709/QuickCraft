@@ -418,11 +418,15 @@ def test_pending_quote_cannot_use_the_new_appointment_route(app, client, partly_
 
 def test_finished_job_cannot_get_a_new_appointment(app, client, waiting):
     job_id, quote_id = waiting
+    with app.app_context():
+        db.session.get(Quote, quote_id).earliest_start = date.today()
+        db.session.commit()
+    take_nine_oclock(app, job_id, quote_id)
     client.post(f"/reviews/jobs/{job_id}/done")
 
     rebook(client, quote_id)
 
-    assert booking_ids(app, job_id) == []
+    assert booking_ids(app, job_id) == [1]
 
 
 # --- Transitions: cancelling a booked slot ------------------------------------------------
@@ -485,6 +489,10 @@ def test_partly_filled_job_cannot_be_cancelled(app, client, partly_filled):
 
 def test_running_job_can_be_marked_as_done(app, client, accepted):
     job_id = accepted[0]
+    with app.app_context():
+        quote = db.session.get(Quote, accepted[1])
+        quote.earliest_start = date.today()
+        db.session.commit()
 
     client.post(f"/reviews/jobs/{job_id}/done")
 
@@ -537,6 +545,9 @@ def test_cancelling_twice_changes_nothing_more(app, client, accepted):
 
 def test_appointment_of_a_finished_job_cannot_be_cancelled(app, client, accepted):
     job_id, _, booking_id = accepted
+    with app.app_context():
+        db.session.get(Quote, accepted[1]).earliest_start = date.today()
+        db.session.commit()
     client.post(f"/reviews/jobs/{job_id}/done")
 
     response = client.post(f"/bookings/{booking_id}/cancel", follow_redirects=True)

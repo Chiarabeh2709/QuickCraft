@@ -15,7 +15,7 @@
 <h2 class="h5 mt-4">Appointments</h2>
 {% for booking in job.bookings | sort(attribute="starts_at") %}
   <p class="mb-2">
-    <strong>{{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</strong>
+    <strong>{{ booking.starts_at | date_format(include_time=true) }}</strong>
     &middot; {{ booking.tradesperson.profile.company_name }}
   </p>
 {% endfor %}

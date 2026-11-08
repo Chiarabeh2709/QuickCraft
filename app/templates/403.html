@@ -4,8 +4,18 @@
 
 {% block content %}
 <div class="py-5 text-center">
-  <h1 class="h3">You don't have access to this page</h1>
-  <p class="text-body-secondary">If you are a tradesperson, your account may still be waiting for approval.</p>
+  <h1 class="display-6">Access denied</h1>
+  {% if current_user.is_authenticated and current_user.role == "admin" %}
+    <p class="text-body-secondary">Administrators cannot access this page.</p>
+  {% elif current_user.is_authenticated and current_user.role == "customer" %}
+    <p class="text-body-secondary">This page is not available to customers.</p>
+  {% elif current_user.is_authenticated and current_user.role == "tradesperson" and current_user.verification_status == "pending" %}
+    <p class="text-body-secondary">Your account is waiting for approval.</p>
+  {% elif current_user.is_authenticated and current_user.is_verified_tradesperson %}
+    <p class="text-body-secondary">This page is not available to verified tradespeople.</p>
+  {% else %}
+    <p class="text-body-secondary">You do not have permission to view this page.</p>
+  {% endif %}
   <a class="btn btn-primary" href="{{ url_for('main.home') }}">Back to home</a>
 </div>
 {% endblock %}

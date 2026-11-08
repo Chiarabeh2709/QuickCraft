@@ -530,8 +530,8 @@ def test_small_open_job_offers_free_slots(seeded, client):
 def test_project_page_shows_members_dates_and_comments(seeded, client):
     log_in(client, customer_email("olivia"))
     project = page(client, "/projects/1")
-    assert TRADESPEOPLE["tiling"]["name"] in project
-    assert TRADESPEOPLE["oak"]["name"] in project
+    assert TRADESPEOPLE["tiling"]["company"] in project
+    assert TRADESPEOPLE["oak"]["company"] in project
     assert project.count("<strong>Tiler</strong>") == 1
     assert "The tiles need to be finished" in project
     with seeded.app_context():

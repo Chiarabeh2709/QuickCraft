@@ -36,6 +36,7 @@ def create_app(config_class=Config):
         app.register_blueprint(module.bp)
 
     app.register_error_handler(403, forbidden)
+    app.register_error_handler(404, not_found)
     app.cli.add_command(reset_db)
 
     with app.app_context():
@@ -57,3 +58,7 @@ def create_app(config_class=Config):
 
 def forbidden(_error):
     return render_template("403.html"), 403
+
+
+def not_found(_error):
+    return render_template("404.html"), 404

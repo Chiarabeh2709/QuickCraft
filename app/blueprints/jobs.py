@@ -1,4 +1,5 @@
 # Feature 2: posting, listing and managing jobs.
+import re
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from sqlalchemy import func
@@ -19,6 +20,11 @@ from app.models import (
 )
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
+
+
+@bp.app_template_filter("slug")
+def slug(value):
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 URGENCY_NORMAL = "normal"
 URGENCY_URGENT = "urgent"

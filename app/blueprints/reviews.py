@@ -1,17 +1,20 @@
 # Feature 6: reviews after a job is done.
-from flask import Blueprint, abort, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from sqlalchemy import func
 
 from app.decorators import confirmed_customer_required
+from app.blueprints.jobs import missing_appointments
 from app.extensions import db
 from app.models import (
     JOB_DONE,
+    JOB_IN_PROGRESS,
     QUOTE_ACCEPTED,
     ROLE_TRADESPERSON,
     TRADE_APPROVED,
     VERIFICATION_VERIFIED,
     Job,
+    Booking,
     Quote,
     Review,
     TradespersonProfile,
@@ -30,13 +33,11 @@ def job_or_404(job_id):
 
 def did_job(job, tradesperson_id):
     return db.session.scalar(
-        db.select(Quote.id)
-        .join(Quote.job_trade)
-        .where(
-            Quote.job_trade.has(job_id=job.id),
-            Quote.tradesperson_id == tradesperson_id,
-            Quote.status == QUOTE_ACCEPTED,
-        )
+        db.select(Quote.id).join(Quote.job_trade).where(
+            Quote.job_trade.has(job_id=job.id), Quote.tradesperson_id == tradesperson_id, Quote.status == QUOTE_ACCEPTED
+        ).union(
+            db.select(Booking.id).where(Booking.job_id == job.id, Booking.tradesperson_id == tradesperson_id)
+        ).limit(1)
     ) is not None
 
 
@@ -44,11 +45,15 @@ def did_job(job, tradesperson_id):
 @confirmed_customer_required
 def mark_done(job_id):
     job = job_or_404(job_id)
-    if job.customer_id != current_user.id:
+    if (
+        job.customer_id != current_user.id
+        or job.status != JOB_IN_PROGRESS
+        or not job.bookings
+        or missing_appointments(job)
+    ):
         abort(403)
-    if job.status != JOB_DONE:
-        job.status = JOB_DONE
-        db.session.commit()
+    job.status = JOB_DONE
+    db.session.commit()
     return redirect(url_for("reviews.job_reviews", job_id=job.id))
 
 
@@ -89,6 +94,7 @@ def add_review(job_id, tradesperson_id):
         )
     )
     db.session.commit()
+    flash("Your review was submitted.", "success")
     # Back to the job, because the tradesperson's own page is a 404 once they have no approved trade.
     return redirect(url_for("reviews.job_reviews", job_id=job.id))
 
