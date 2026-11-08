@@ -12,7 +12,7 @@
       <h2 class="h5">{{ person.profile.company_name }}</h2>
       <dl class="row mb-3">
         <dt class="col-sm-4">Contact</dt>
-        <dd class="col-sm-8">{{ person.profile.company_name }} ({{ person.email }})</dd>
+        <dd class="col-sm-8">{{ person.name }} ({{ person.email }})</dd>
         <dt class="col-sm-4">Trade</dt>
         <dd class="col-sm-8">{{ person.profile.trades | map(attribute="trade") | join(", ") }}</dd>
         <dt class="col-sm-4">Service area</dt>
@@ -45,7 +45,7 @@
       <h3 class="h5">{{ entry.profile.company_name }}: {{ entry.trade }}</h3>
       <dl class="row mb-3">
         <dt class="col-sm-4">Tradesperson</dt>
-        <dd class="col-sm-8">{{ entry.profile.company_name }} ({{ entry.profile.user.email }})</dd>
+        <dd class="col-sm-8">{{ entry.profile.user.name }} ({{ entry.profile.user.email }})</dd>
         <dt class="col-sm-4">Qualification reference</dt>
         <dd class="col-sm-8">{{ entry.profile.qualification_reference }}</dd>
       </dl>

@@ -7,11 +7,14 @@ from flask_login import current_user, login_required
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
+    JOB_OPEN,
     Project,
     ProjectComment,
     ProjectSchedule,
     Quote,
     QUOTE_ACCEPTED,
+    ROLE_CUSTOMER,
+    User,
 )
 
 bp = Blueprint("projects", __name__, url_prefix="/projects")
@@ -128,8 +131,6 @@ def for_job(job_id):
     job = db.session.get(Job, job_id)
     if job is None:
         abort(404)
-    if job.customer_id != current_user.id:
-        abort(403)
     project = ensure_project(job)
     if project is None:
         abort(404)

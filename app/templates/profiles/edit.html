@@ -19,9 +19,9 @@
       <legend class="form-label fs-6">Your trades</legend>
       {% for trade in trades %}
         <div class="form-check">
-          <input class="form-check-input{{ ' is-invalid' if errors.get('trades') }}" type="checkbox" id="trade-{{ trade | slug }}"
+          <input class="form-check-input{{ ' is-invalid' if errors.get('trades') }}" type="checkbox" id="trade-{{ trade }}"
                  name="trades" value="{{ trade }}" {{ "checked" if trade in chosen_trades }}>
-          <label class="form-check-label" for="trade-{{ trade | slug }}">
+          <label class="form-check-label" for="trade-{{ trade }}">
             {{ trade }}
             {% if trade_status.get(trade) == "pending" %}
               <span class="badge text-bg-warning ms-1">waiting for approval</span>

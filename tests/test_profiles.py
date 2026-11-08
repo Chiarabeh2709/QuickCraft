@@ -1,5 +1,3 @@
-from datetime import date, time
-
 import pytest
 
 from app import create_app
@@ -14,9 +12,6 @@ from app.models import (
     TRADE_APPROVED,
     TradespersonProfile,
     TradespersonTrade,
-    AvailabilitySlot,
-    Job,
-    Review,
     User,
 )
 from config import TestConfig
@@ -211,32 +206,6 @@ def test_profile_has_empty_sections_for_teammates(client, make_tradesperson):
     page = client.get(f"/profiles/{make_tradesperson()}").get_data(as_text=True)
     assert '<section id="availability"' in page
     assert '<section id="reviews"' in page
-
-
-def test_profile_shows_upcoming_free_slots_and_latest_reviews(client, app, make_tradesperson, make_user):
-    profile_id = make_tradesperson()
-    customer_id = make_user(email="reviewer@example.com", email_verified=True)
-    with app.app_context():
-        profile = db.session.get(TradespersonProfile, profile_id)
-        db.session.get(User, customer_id).name = "Ada Lovelace"
-        db.session.add(AvailabilitySlot(profile_id=profile.id, weekday=date.today().weekday(), start_time=time(9), end_time=time(12)))
-        job = Job(customer_id=customer_id, title="Paint the hall", city="Munich", description="Walls", urgency="soon")
-        db.session.add(job)
-        db.session.flush()
-        db.session.add(Review(job_id=job.id, tradesperson_id=profile.user_id, stars=5, comment="Excellent work"))
-        db.session.commit()
-    page = client.get(f"/profiles/{profile_id}").get_data(as_text=True)
-    assert "No upcoming free slots." not in page
-    assert "Book a slot" not in page or "/bookings/job/" in page
-    assert "Average rating: 5.0" in page
-    assert "Ada" in page and "Lovelace" not in page
-    assert "Excellent work" in page
-
-
-def test_date_format_filter_uses_shared_human_format(app):
-    from app.blueprints.profiles import date_format
-
-    assert date_format(date(2026, 11, 19)) == "19 Nov 2026"
 
 
 def test_profile_without_description_still_loads(client, make_tradesperson):

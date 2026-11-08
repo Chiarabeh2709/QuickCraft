@@ -5,7 +5,6 @@ from flask_login import current_user
 from sqlalchemy import func
 
 from app.blueprints.jobs import form_value, selected_trades, service_cities
-from app.blueprints.bookings import free_times, job_is_bookable, offers_job
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
@@ -17,19 +16,9 @@ from app.models import (
     TradespersonProfile,
     TradespersonTrade,
     User,
-    Job,
-    Review,
 )
 
 bp = Blueprint("profiles", __name__, url_prefix="/profiles")
-
-
-@bp.app_template_filter("date_format")
-def date_format(value, include_time=False):
-    if value is None:
-        return ""
-    formatted = value.strftime("%-d %b %Y")
-    return f"{formatted}, {value.strftime('%H:%M')}" if include_time else formatted
 
 MAX_DESCRIPTION = 1000
 MAX_SERVICE_AREA = 120
@@ -81,25 +70,7 @@ def detail(profile_id):
     if not profile.user.is_verified_tradesperson:
         abort(404)
     is_owner = current_user.is_authenticated and current_user.id == profile.user_id
-    free_slots = free_times(profile)
-    reviews = db.session.scalars(
-        db.select(Review).where(Review.tradesperson_id == profile.user_id).order_by(Review.created_at.desc()).limit(5)
-    ).all()
-    all_reviews = profile.user.reviews_received
-    average = round(sum(review.stars for review in all_reviews) / len(all_reviews), 1) if all_reviews else None
-    booking_jobs = []
-    if current_user.is_authenticated and current_user.role == "customer":
-        jobs = db.session.scalars(db.select(Job).where(Job.customer_id == current_user.id)).all()
-        booking_jobs = [job for job in jobs if job_is_bookable(job) and offers_job(profile, job)]
-    return render_template(
-        "profiles/detail.html",
-        profile=profile,
-        is_owner=is_owner,
-        free_slots=free_slots,
-        reviews=reviews,
-        average=average,
-        booking_jobs=booking_jobs,
-    )
+    return render_template("profiles/detail.html", profile=profile, is_owner=is_owner)
 
 
 @bp.route("/me")
