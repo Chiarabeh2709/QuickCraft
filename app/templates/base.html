@@ -9,7 +9,16 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <nav class="navbar navbar-expand-md bg-body-tertiary border-bottom">
+  {# Marks the current page, for sighted users and for screen readers. #}
+  {% macro nav_item(endpoint, label, current=false) %}
+    {% set is_current = current or request.endpoint == endpoint %}
+    <li class="nav-item">
+      <a class="nav-link{{ ' active' if is_current }}" {% if is_current %}aria-current="page"{% endif %} href="{{ url_for(endpoint) }}">{{ label }}</a>
+    </li>
+  {% endmacro %}
+
+  {# lg, not md: a customer has five links, which would not fit on one line on a tablet. #}
+  <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
     <div class="container">
       <a class="navbar-brand fw-bold" href="{{ url_for('main.home') }}">QuickCraft</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav"
@@ -17,25 +26,40 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="main-nav">
+        {# These links only guide people. The routes check access themselves, so hiding a link protects nothing. #}
         <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.home') }}">Home</a></li>
-          {# Disabled until the routes exist: url_for() would crash on a missing endpoint. #}
-          <li class="nav-item"><a class="nav-link disabled" aria-disabled="true">Post a job</a></li>
+          {% if not current_user.is_authenticated %}
+            {{ nav_item("main.home", "Home") }}
+          {% elif current_user.role == "admin" %}
+            {{ nav_item("admin.pending_tradespeople", "Approve tradespeople and trades") }}
+          {% elif current_user.role == "customer" and not current_user.email_verified %}
+            {{ nav_item("auth.confirm_email", "Confirm your email to post a job") }}
+          {% elif current_user.role == "customer" %}
+            {{ nav_item("jobs.new", "Post a job") }}
+            {{ nav_item("jobs.my_jobs", "My jobs") }}
+            {{ nav_item("profiles.search", "Find tradespeople") }}
+            {{ nav_item("bookings.appointments", "My appointments") }}
+            {{ nav_item("reviews.search_tradespeople", "Tradespeople reviews") }}
+          {% elif current_user.is_verified_tradesperson %}
+            {% set profile = current_user.profile %}
+            {# /profiles/me only redirects, so the page people actually see is their profile or its edit form. #}
+            {% set on_my_profile = profile and request.endpoint in ("profiles.detail", "profiles.edit") and request.view_args.profile_id == profile.id %}
+            {{ nav_item("jobs.job_list", "Open jobs") }}
+            {{ nav_item("quotes.my_quotes", "My quotes") }}
+            {{ nav_item("bookings.availability", "My availability") }}
+            {{ nav_item("profiles.my_profile", "My profile", current=on_my_profile) }}
+            {{ nav_item("bookings.appointments", "My appointments") }}
+          {% endif %}
         </ul>
-        <ul class="navbar-nav align-items-md-center">
+        <ul class="navbar-nav align-items-lg-center">
           {% if current_user.is_authenticated %}
-            {% if current_user.role == "admin" %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.pending_tradespeople') }}">Pending tradespeople</a></li>
-            {% elif current_user.role == "customer" %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('jobs.my_jobs') }}">My jobs</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.my_bookings') }}">My bookings</a></li>
-            {% elif current_user.is_verified_tradesperson %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('jobs.job_list') }}">Find jobs</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('quotes.my_quotes') }}">My quotes</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.availability') }}">My availability</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('bookings.appointments') }}">My appointments</a></li>
+            {% if current_user.role == "tradesperson" and not current_user.is_verified_tradesperson %}
+              <li class="nav-item">
+                <span class="navbar-text me-lg-3">{{ "Waiting for approval" if current_user.verification_status == "pending" else "Account not approved" }}</span>
+              </li>
+            {% else %}
+              <li class="nav-item"><span class="navbar-text me-lg-3">{{ current_user.name }}</span></li>
             {% endif %}
-            <li class="nav-item"><span class="navbar-text me-md-3">{{ current_user.name }}</span></li>
             <li class="nav-item">
               {# A form, not a link: logging out changes state, so it must be a POST with a CSRF token. #}
               <form method="post" action="{{ url_for('auth.logout') }}">
@@ -44,14 +68,15 @@
               </form>
             </li>
           {% else %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Log in</a></li>
+            {% set on_signup = request.endpoint in ("auth.signup_customer", "auth.signup_tradesperson") %}
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Sign up</a>
+              <a class="nav-link dropdown-toggle{{ ' active' if on_signup }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Sign up</a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{{ url_for('auth.signup_customer') }}">As a customer</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.signup_tradesperson') }}">As a tradesperson</a></li>
+                <li><a class="dropdown-item{{ ' active' if request.endpoint == 'auth.signup_customer' }}" {% if request.endpoint == 'auth.signup_customer' %}aria-current="page"{% endif %} href="{{ url_for('auth.signup_customer') }}">As a customer</a></li>
+                <li><a class="dropdown-item{{ ' active' if request.endpoint == 'auth.signup_tradesperson' }}" {% if request.endpoint == 'auth.signup_tradesperson' %}aria-current="page"{% endif %} href="{{ url_for('auth.signup_tradesperson') }}">As a tradesperson</a></li>
               </ul>
             </li>
+            {{ nav_item("auth.login", "Log in") }}
           {% endif %}
         </ul>
       </div>

@@ -34,6 +34,9 @@ If data has to last, follow "Keeping the data" below.
    | `SECRET_KEY` | Output of `python3 -c "import secrets; print(secrets.token_hex(32))"` |
    | `ADMIN_EMAIL` | The email you will log in with as admin |
    | `ADMIN_PASSWORD` | A long, unique password |
+   | `SEED_DEMO_DATA` | `true`, for the demo only |
+
+   `SEED_DEMO_DATA` must be set in the Render dashboard for the demo, otherwise the site starts without any demo data. It creates fake accounts with a public password (see `DEMO.md`), so never set it on a site with real users.
 
    These live only in Render. Never commit them. Changing `ADMIN_PASSWORD` later does not
    change the password of an admin who already exists in the database.

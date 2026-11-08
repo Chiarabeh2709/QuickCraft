@@ -13,7 +13,7 @@
   <div class="card mb-3">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start gap-2">
-        <h2 class="h5">{{ job.title }}</h2>
+        <h2 class="h5"><a href="{{ url_for('jobs.my_job', job_id=job.id) }}">{{ job.title }}</a></h2>
         <span class="badge text-bg-{{ 'success' if job.status == 'open' else 'secondary' }}">
           {{ job.status | replace("_", " ") | capitalize }}
         </span>
@@ -23,7 +23,38 @@
         {% if job.urgency == "urgent" %}<span class="badge text-bg-danger ms-1">Urgent</span>{% endif %}
       </p>
       <p class="mb-3" style="white-space: pre-line">{{ job.description }}</p>
-      <p><a href="{{ url_for('quotes.compare', job_id=job.id) }}">View quotes</a></p>
+      {% for booking in job.bookings | sort(attribute="starts_at") %}
+        <p class="mb-2">
+          <strong>Appointment:</strong> {{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}
+          &middot; {{ booking.tradesperson.profile.company_name }}
+        </p>
+      {% endfor %}
+      {% for quote in missing_appointments(job) %}
+        <p class="mb-2">
+          <span class="badge text-bg-warning">Appointment needed</span>
+          {{ quote.tradesperson.profile.company_name }}:
+          <a href="{{ url_for('appointments.rebook', quote_id=quote.id) }}">Choose a new appointment</a>
+        </p>
+      {% endfor %}
+      {# A project needs two trades with an accepted quote; with fewer, its route answers 404. #}
+      {% set accepted = namespace(trades=0) %}
+      {% for job_trade in job.trades %}
+        {% if job_trade.quotes | selectattr("status", "equalto", "accepted") | list %}
+          {% set accepted.trades = accepted.trades + 1 %}
+        {% endif %}
+      {% endfor %}
+      <p class="d-flex flex-wrap gap-3">
+        <a href="{{ url_for('quotes.compare', job_id=job.id) }}">View quotes</a>
+        {% if accepted.trades >= 2 %}
+          <a href="{{ url_for('projects.for_job', job_id=job.id) }}">Project page</a>
+        {% endif %}
+        {# Only once work has started: the review page offers "Mark job as done" for any job it opens. #}
+        {% if job.status == "in_progress" %}
+          <a href="{{ url_for('reviews.job_reviews', job_id=job.id) }}">Mark as done and review</a>
+        {% elif job.status == "done" and accepted.trades >= 1 %}
+          <a href="{{ url_for('reviews.job_reviews', job_id=job.id) }}">Reviews</a>
+        {% endif %}
+      </p>
       {% if job.status == "open" %}
         <div class="d-flex gap-2">
           {% if job.is_small %}

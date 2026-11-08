@@ -16,6 +16,7 @@ from app.models import (
     QUOTE_ACCEPTED,
     QUOTE_PENDING,
     QUOTE_REJECTED,
+    Booking,
     Job,
     JobTrade,
     Quote,
@@ -91,7 +92,7 @@ def trade_filled(job_trade):
 
 def quotable_trades(job):
     """The trades on this job that the tradesperson offers and nobody has won yet."""
-    my_trades = {entry.trade for entry in current_user.profile.trades}
+    my_trades = current_user.profile.approved_trades
     return [job_trade for job_trade in job.trades if job_trade.trade in my_trades and not trade_filled(job_trade)]
 
 
@@ -248,8 +249,20 @@ def compare(job_id):
     return render_template("quotes/compare.html", job=job, groups=groups, acceptable=acceptable, sort=sort)
 
 
-def accept_quote(quote):
-    """Returns False if the quote was no longer pending."""
+def save_appointment(quote, starts_at):
+    """Returns False if somebody else just took this time."""
+    db.session.add(Booking(job_id=quote.job_trade.job_id, tradesperson_id=quote.tradesperson_id, starts_at=starts_at))
+    try:
+        # No "is it free?" check here: the unique constraint is the last line of defence against a double click.
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return False
+    return True
+
+
+def accept_quote(quote, starts_at):
+    """Returns False if the quote was no longer pending or somebody else just took this time."""
     # The condition sits in the UPDATE itself, so of two simultaneous requests only one can win.
     accepted = db.update(Quote).where(Quote.id == quote.id, Quote.status == QUOTE_PENDING)
     if db.session.execute(accepted.values(status=QUOTE_ACCEPTED)).rowcount == 0:
@@ -265,20 +278,5 @@ def accept_quote(quote):
     job = quote.job_trade.job
     if all(trade_filled(job_trade) for job_trade in job.trades):
         job.status = JOB_IN_PROGRESS
-    db.session.commit()
-    return True
-
-
-@bp.route("/<int:quote_id>/accept", methods=["POST"])
-@confirmed_customer_required
-def accept(quote_id):
-    quote = db.get_or_404(Quote, quote_id)
-    job = quote.job_trade.job
-    # Ownership check: only the customer of the job can accept a quote for it.
-    if job.customer_id != current_user.id:
-        abort(403)
-    if can_accept(quote) and accept_quote(quote):
-        flash("You accepted this quote.", "success")
-    else:
-        flash("This quote can no longer be accepted.", "warning")
-    return redirect(url_for("quotes.compare", job_id=job.id))
+    # One commit with the quote, so an accepted quote can never end up without its appointment.
+    return save_appointment(quote, starts_at)

@@ -1,7 +1,9 @@
 {% extends "base.html" %}
-{% block title %}{{ person.name }} · QuickCraft{% endblock %}
+{% block title %}{{ profile.company_name }} · QuickCraft{% endblock %}
+{# Company name and approved trades only: never use profile.user here. #}
 {% block content %}
-<h1>{{ person.name }}</h1>
+<h1>{{ profile.company_name }}</h1>
+<p class="text-body-secondary">{{ profile.approved_trades | join(", ") }}</p>
 <p>Average rating: {{ average if average is not none else 'No ratings yet' }}</p>
 <h2 class="h4">Reviews</h2>
 {% for review in reviews %}<article class="border rounded p-3 mb-2"><strong>{{ review.stars }}/5</strong>{% if review.comment %}<p class="mb-0">{{ review.comment }}</p>{% endif %}</article>{% else %}<p>No reviews yet.</p>{% endfor %}

@@ -13,9 +13,33 @@
   {{ job.city }} &middot; {{ job.trades | map(attribute="trade") | join(", ") }}
 </p>
 <p style="white-space: pre-line">{{ job.description }}</p>
+{# Mirrors the project routes: members have an accepted quote, and a project needs two accepted trades. #}
+{% set project = namespace(is_member=false, accepted_trades=0) %}
+{% for job_trade in job.trades %}
+  {% set accepted = job_trade.quotes | selectattr("status", "equalto", "accepted") | list %}
+  {% if accepted %}
+    {% set project.accepted_trades = project.accepted_trades + 1 %}
+  {% endif %}
+  {% if accepted | selectattr("tradesperson_id", "equalto", current_user.id) | list %}
+    {% set project.is_member = true %}
+  {% endif %}
+{% endfor %}
+{% if current_user.is_verified_tradesperson and project.is_member and project.accepted_trades >= 2 %}
+  <p><a href="{{ url_for('projects.for_job', job_id=job.id) }}">Project page</a></p>
+{% endif %}
 {% if job.status == "open" %}
   <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
 {% endif %}
+
+{% if missing_appointments(job) | selectattr("tradesperson_id", "equalto", current_user.id) | list %}
+  <p class="mt-3">
+    <span class="badge text-bg-warning">Appointment needed</span>
+    The customer still has to choose a new date and time.
+  </p>
+{% endif %}
+{% for booking in my_bookings %}
+  <p class="mt-3"><strong>Your appointment:</strong> {{ booking.starts_at.strftime("%a, %d %b %Y, %H:%M") }}</p>
+{% endfor %}
 
 <h2 class="h5 mt-4">Customer contact</h2>
 {# Phone and address are only rendered inside this branch, so they cannot leak into the page by accident. #}
@@ -32,5 +56,11 @@
   <p class="text-body-secondary">
     The customer's phone number and address are shared once they accept your quote or book your slot.
   </p>
+{% endif %}
+
+{% if has_thread_access %}
+  <h2 class="h5 mt-4">Messages</h2>
+  {# No phone number here: a number shared by consent only ever appears on the conversation page. #}
+  {% include "messages/_thread.html" %}
 {% endif %}
 {% endblock %}

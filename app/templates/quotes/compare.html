@@ -1,6 +1,4 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
-
 {% block title %}Quotes | QuickCraft{% endblock %}
 
 {% block content %}
@@ -30,10 +28,7 @@
           {% if quote.message %}<p class="mb-0 mt-2" style="white-space: pre-line">{{ quote.message }}</p>{% endif %}
         </div>
         {% if quote.id in acceptable %}
-          <form method="post" action="{{ url_for('quotes.accept', quote_id=quote.id) }}">
-            {{ csrf_field() }}
-            <button class="btn btn-primary btn-sm" type="submit">Accept</button>
-          </form>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('appointments.confirm', quote_id=quote.id) }}">Accept</a>
         {% endif %}
       </div>
     </div>

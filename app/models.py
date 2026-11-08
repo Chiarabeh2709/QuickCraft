@@ -23,8 +23,12 @@ QUOTE_PENDING = "pending"
 QUOTE_ACCEPTED = "accepted"
 QUOTE_REJECTED = "rejected"
 
+TRADE_PENDING = "pending"
+TRADE_APPROVED = "approved"
+TRADE_REJECTED = "rejected"
+
 # A fixed list, because free text ("Plumber", "plumbing") could never be matched to jobs.
-TRADES = ("Carpenter", "Electrician", "Painter", "Plumber", "Roofer", "Tiler")
+TRADES = ("Carpenter", "Electrician", "Heating engineer", "Painter", "Plumber", "Roofer", "Tiler")
 
 
 def utcnow():
@@ -96,9 +100,15 @@ class TradespersonProfile(db.Model):
     # A reference number only: we deliberately store no uploaded documents (GDPR).
     qualification_reference = db.Column(db.String(50))
     service_area = db.Column(db.String(120))
+    description = db.Column(db.Text)
 
     trades = db.relationship("TradespersonTrade", backref="profile", cascade="all, delete-orphan")
     availability = db.relationship("AvailabilitySlot", backref="profile", cascade="all, delete-orphan")
+
+    @property
+    def approved_trades(self):
+        # The only trades that count for jobs, search and the public profile.
+        return [entry.trade for entry in self.trades if entry.status == TRADE_APPROVED]
 
 
 class TradespersonTrade(db.Model):
@@ -106,8 +116,11 @@ class TradespersonTrade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     profile_id = db.Column(db.ForeignKey("tradesperson_profile.id"), nullable=False)
     trade = db.Column(db.String(50), nullable=False)
+    # Pending by default, so a trade that nobody decided on can never grant access by accident.
+    status = db.Column(db.String(20), nullable=False, default=TRADE_PENDING)
 
-    __table_args__ = (db.UniqueConstraint("profile_id", "trade"),)
+    # Autoincrement so a deleted id is never reused: otherwise a stale admin tab could approve a different trade.
+    __table_args__ = (db.UniqueConstraint("profile_id", "trade"), {"sqlite_autoincrement": True})
 
 
 class AvailabilitySlot(db.Model):
@@ -136,6 +149,7 @@ class Job(db.Model):
     bookings = db.relationship("Booking", backref="job", cascade="all, delete-orphan")
     reviews = db.relationship("Review", backref="job", cascade="all, delete-orphan")
     project = db.relationship("Project", backref="job", uselist=False, cascade="all, delete-orphan")
+    threads = db.relationship("MessageThread", backref="job", cascade="all, delete-orphan")
 
 
 class JobTrade(db.Model):
@@ -209,6 +223,35 @@ class ProjectComment(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     author = db.relationship("User")
+
+
+class MessageThread(db.Model):
+    # Its own table because consent and "last seen" belong to the conversation, not to one message.
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.ForeignKey("job.id"), nullable=False)
+    tradesperson_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # The customer's consent for this one tradesperson on this one job. Empty means no consent.
+    phone_shared_at = db.Column(db.DateTime)
+    customer_last_seen_at = db.Column(db.DateTime)
+    tradesperson_last_seen_at = db.Column(db.DateTime)
+
+    tradesperson = db.relationship("User")
+    messages = db.relationship(
+        "Message", backref="thread", cascade="all, delete-orphan", order_by="Message.id"
+    )
+
+    __table_args__ = (db.UniqueConstraint("job_id", "tradesperson_id"),)
+
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.ForeignKey("message_thread.id"), nullable=False)
+    sender_id = db.Column(db.ForeignKey("user.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    sender = db.relationship("User")
 
 
 class Review(db.Model):

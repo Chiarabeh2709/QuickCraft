@@ -1,9 +1,22 @@
 from flask import Flask, render_template
 from sqlalchemy.exc import OperationalError
 
-from app.blueprints import admin, auth, bookings, jobs, main, projects, quotes, reviews
+from app.blueprints import (
+    admin,
+    appointments,
+    auth,
+    bookings,
+    jobs,
+    main,
+    messages,
+    profiles,
+    projects,
+    quotes,
+    reviews,
+)
 from app.cli import reset_db
 from app.extensions import csrf, db, login_manager
+from app.seed import seed_if_enabled
 from config import Config
 
 
@@ -19,7 +32,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    for module in (main, auth, jobs, quotes, bookings, projects, reviews, admin):
+    for module in (main, auth, jobs, profiles, quotes, bookings, appointments, messages, projects, reviews, admin):
         app.register_blueprint(module.bp)
 
     app.register_error_handler(403, forbidden)
@@ -36,6 +49,8 @@ def create_app(config_class=Config):
             # An outdated table must not stop startup, or `flask reset-db` could never run to fix it.
             db.session.rollback()
             app.logger.warning("Could not check the admin: the database is outdated. Locally, run: flask reset-db")
+
+        seed_if_enabled()
 
     return app
 
