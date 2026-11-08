@@ -1,10 +1,7 @@
-import re
-
 from flask import Flask, render_template
-from flask_login import current_user
 from sqlalchemy.exc import OperationalError
 
-from app.blueprints import admin, auth, bookings, jobs, main, profiles, projects, quotes, reviews
+from app.blueprints import admin, auth, bookings, jobs, main, projects, quotes, reviews
 from app.cli import reset_db
 from app.extensions import csrf, db, login_manager
 from config import Config
@@ -22,19 +19,10 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    for module in (main, auth, jobs, quotes, bookings, projects, profiles, reviews, admin):
+    for module in (main, auth, jobs, quotes, bookings, projects, reviews, admin):
         app.register_blueprint(module.bp)
 
-    @app.template_filter("date_format")
-    def date_format(value):
-        return value.strftime("%d %b %Y") if value else ""
-
-    @app.template_filter("slugify")
-    def slugify(value):
-        return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-
     app.register_error_handler(403, forbidden)
-    app.register_error_handler(404, not_found)
     app.cli.add_command(reset_db)
 
     with app.app_context():
@@ -53,20 +41,4 @@ def create_app(config_class=Config):
 
 
 def forbidden(_error):
-    if not current_user.is_authenticated:
-        message = "You do not have permission to view this page."
-    elif current_user.role == "admin":
-        message = "This page is not available to administrators."
-    elif current_user.role == "customer":
-        message = "This page is only available to the relevant customer or tradespeople."
-    elif current_user.verification_status == "pending":
-        message = "Your account is waiting for approval before you can access this page."
-    elif current_user.is_verified_tradesperson:
-        message = "This page is only available to the relevant tradesperson."
-    else:
-        message = "You do not have permission to view this page."
-    return render_template("403.html", message=message), 403
-
-
-def not_found(_error):
-    return render_template("404.html"), 404
+    return render_template("403.html"), 403

@@ -6,7 +6,7 @@
 <div class="list-group">
   {% for person in people %}
     <a class="list-group-item list-group-item-action" href="{{ url_for('reviews.tradesperson_profile', tradesperson_id=person.id) }}">
-      <strong>{{ person.profile.company_name }}</strong> · Rating: {{ ratings[person.id] if ratings[person.id] is not none else 'No ratings yet' }}
+      <strong>{{ person.name }}</strong> · Rating: {{ ratings[person.id] if ratings[person.id] is not none else 'No ratings yet' }}
     </a>
   {% else %}<p>No tradespeople found.</p>{% endfor %}
 </div>

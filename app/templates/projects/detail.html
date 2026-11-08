@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Project · QuickCraft{% endblock %}
 {% block content %}
-<h1>{{ project.job.title }}</h1>
+<h1>{{ project.job.description }}</h1>
 <p class="text-muted">{{ project.job.city }} · shared project timeline</p>
 
 <h2 class="h4 mt-4">Timeline</h2>
@@ -9,8 +9,8 @@
   <div class="list-group mb-4">
     {% for schedule in project.schedules %}
       <div class="list-group-item">
-        <strong>{{ schedule.job_trade.trade }}</strong> — {{ schedule.tradesperson.profile.company_name }}<br>
-        {{ schedule.start_date|date_format }} to {{ schedule.end_date|date_format }}
+        <strong>{{ schedule.job_trade.trade }}</strong> — {{ schedule.tradesperson.name }}<br>
+        {{ schedule.start_date.strftime('%Y-%m-%d') }} to {{ schedule.end_date.strftime('%Y-%m-%d') }}
       </div>
     {% endfor %}
   </div>
@@ -27,7 +27,7 @@
 {% endif %}
 
 <h2 class="h4">Comments</h2>
-{% for comment in project.comments %}<p><strong>{{ comment.author.name }}</strong>: {{ comment.body }}{% if comment.proposed_date %} <span class="text-muted">({{ comment.proposed_date|date_format }})</span>{% endif %}</p>{% else %}<p>No comments yet.</p>{% endfor %}
+{% for comment in project.comments %}<p><strong>{{ comment.author.name }}</strong>: {{ comment.body }}</p>{% else %}<p>No comments yet.</p>{% endfor %}
 <form method="post" action="{{ url_for('projects.add_comment', project_id=project.id) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label class="form-label" for="body">Add a comment</label>

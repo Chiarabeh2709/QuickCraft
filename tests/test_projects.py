@@ -13,7 +13,6 @@ from app.models import (
     ROLE_CUSTOMER,
     ROLE_TRADESPERSON,
     VERIFICATION_VERIFIED,
-    TradespersonProfile,
     User,
 )
 
@@ -34,10 +33,6 @@ def project_fixture(app, make_user):
         job = Job(customer_id=customer_id, city="Lisbon", description="Renovate kitchen", urgency="soon", status=JOB_OPEN)
         db.session.add(job)
         db.session.flush()
-        db.session.add_all([
-            TradespersonProfile(user_id=first_id, company_name="First Company"),
-            TradespersonProfile(user_id=second_id, company_name="Second Company"),
-        ])
         plumbing = JobTrade(job_id=job.id, trade="Plumber")
         electrical = JobTrade(job_id=job.id, trade="Electrician")
         db.session.add_all([plumbing, electrical])
@@ -73,30 +68,6 @@ def test_project_is_created_for_two_accepted_trades(client, login, project_fixtu
         assert db.session.scalar(db.select(Project).where(Project.job_id == project_fixture["job_id"])) is not None
 
 
-def test_crafted_request_for_another_users_job_writes_nothing(client, login, project_fixture, app):
-    with app.app_context():
-        project = db.session.get(Project, project_fixture["project_id"])
-        db.session.delete(project)
-        db.session.commit()
-    login(project_fixture["outsider"])
-    assert client.get(f"/projects/job/{project_fixture['job_id']}").status_code == 403
-    with app.app_context():
-        assert db.session.scalar(db.select(Project).where(Project.job_id == project_fixture["job_id"])) is None
-
-
-def test_project_creation_requires_multiple_accepted_trades(client, login, project_fixture, app):
-    with app.app_context():
-        project = db.session.get(Project, project_fixture["project_id"])
-        db.session.delete(project)
-        quote = db.session.scalar(db.select(Quote).where(Quote.status == QUOTE_ACCEPTED))
-        quote.status = "pending"
-        db.session.commit()
-    login(project_fixture["customer"])
-    assert client.get(f"/projects/job/{project_fixture['job_id']}").status_code == 403
-    with app.app_context():
-        assert db.session.scalar(db.select(Project).where(Project.job_id == project_fixture["job_id"])) is None
-
-
 def test_project_is_visible_to_customer(client, login, project_fixture):
     login(project_fixture["customer"])
     assert client.get(f"/projects/{project_fixture['project_id']}").status_code == 200
@@ -129,7 +100,7 @@ def test_accepted_tradesperson_can_propose_dates_and_comment(client, login, proj
     ).status_code == 302
     assert client.post(f"/projects/{project_id}/comments", data={"body": "I will bring the materials."}).status_code == 302
     page = client.get(f"/projects/{project_id}")
-    assert b"01 Dec 2026" in page.data
+    assert b"2026-12-01" in page.data
     assert b"I will bring the materials." in page.data
 
 

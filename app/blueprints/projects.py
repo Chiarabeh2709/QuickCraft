@@ -3,11 +3,11 @@ from datetime import date
 
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import func
 
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
+    JOB_OPEN,
     Project,
     ProjectComment,
     ProjectSchedule,
@@ -131,21 +131,6 @@ def for_job(job_id):
     job = db.session.get(Job, job_id)
     if job is None:
         abort(404)
-    # Check ownership and eligibility before ensure_project can create anything.
-    if job.customer_id != current_user.id:
-        abort(403)
-    accepted = db.session.scalar(
-        db.select(Quote.id)
-        .join(Quote.job_trade)
-        .where(Quote.job_trade.has(job_id=job.id), Quote.status == QUOTE_ACCEPTED)
-    )
-    accepted_trade_count = db.session.scalar(
-        db.select(func.count(func.distinct(Quote.job_trade_id)))
-        .join(Quote.job_trade)
-        .where(Quote.job_trade.has(job_id=job.id), Quote.status == QUOTE_ACCEPTED)
-    )
-    if accepted is None or accepted_trade_count < 2:
-        abort(403)
     project = ensure_project(job)
     if project is None:
         abort(404)

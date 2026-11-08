@@ -1,10 +1,10 @@
 # Feature 6: reviews after a job is done.
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from app.decorators import confirmed_customer_required
 from app.extensions import db
-from app.models import Booking, JOB_DONE, JOB_IN_PROGRESS, Job, Quote, QUOTE_ACCEPTED, Review, ROLE_TRADESPERSON, User
+from app.models import JOB_DONE, Job, Quote, QUOTE_ACCEPTED, Review, ROLE_TRADESPERSON, User
 
 bp = Blueprint("reviews", __name__, url_prefix="/reviews")
 
@@ -17,7 +17,7 @@ def job_or_404(job_id):
 
 
 def did_job(job, tradesperson_id):
-    accepted = db.session.scalar(
+    return db.session.scalar(
         db.select(Quote.id)
         .join(Quote.job_trade)
         .where(
@@ -26,25 +26,6 @@ def did_job(job, tradesperson_id):
             Quote.status == QUOTE_ACCEPTED,
         )
     ) is not None
-    booked = db.session.scalar(
-        db.select(Booking.id).where(
-            Booking.job_id == job.id, Booking.tradesperson_id == tradesperson_id
-        )
-    ) is not None
-    return accepted or booked
-
-
-def missing_appointments(job):
-    """Return whether an accepted trade has no concrete appointment yet."""
-    accepted_tradespeople = db.session.scalars(
-        db.select(Quote.tradesperson_id)
-        .join(Quote.job_trade)
-        .where(Quote.job_trade.has(job_id=job.id), Quote.status == QUOTE_ACCEPTED)
-    ).all()
-    if not accepted_tradespeople:
-        return False
-    booked_tradespeople = {booking.tradesperson_id for booking in job.bookings}
-    return any(tradesperson_id not in booked_tradespeople for tradesperson_id in accepted_tradespeople)
 
 
 @bp.post("/jobs/<int:job_id>/done")
@@ -53,12 +34,9 @@ def mark_done(job_id):
     job = job_or_404(job_id)
     if job.customer_id != current_user.id:
         abort(403)
-    if job.status != JOB_IN_PROGRESS:
-        abort(403)
-    if not job.bookings or missing_appointments(job):
-        abort(403)
-    job.status = JOB_DONE
-    db.session.commit()
+    if job.status != JOB_DONE:
+        job.status = JOB_DONE
+        db.session.commit()
     return redirect(url_for("reviews.job_reviews", job_id=job.id))
 
 
@@ -99,7 +77,6 @@ def add_review(job_id, tradesperson_id):
         )
     )
     db.session.commit()
-    flash("Your review was submitted.", "success")
     return redirect(url_for("reviews.tradesperson_profile", tradesperson_id=tradesperson_id))
 
 

@@ -25,7 +25,7 @@ def confirmed_customer_required(view):
         if current_user.role != ROLE_CUSTOMER:
             abort(403)
         if not current_user.email_verified:
-            flash("Please confirm your email to continue.", "info")
+            flash("Please confirm your email before posting a job.", "info")
             return redirect(url_for("auth.confirm_email"))
         return view(*args, **kwargs)
 
