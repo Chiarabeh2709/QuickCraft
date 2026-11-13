@@ -86,6 +86,10 @@ def add_review(job_id, tradesperson_id):
         db.select(Review).where(Review.job_id == job.id, Review.tradesperson_id == tradesperson_id)
     ):
         abort(409)
+    if not request.form.get("stars"):
+        # The form requires a rating, so this only happens without the browser check: no review is saved.
+        flash("Please choose a star rating before you submit your review.", "warning")
+        return redirect(url_for("reviews.job_reviews", job_id=job.id))
     try:
         stars = int(request.form.get("stars", ""))
     except ValueError:
