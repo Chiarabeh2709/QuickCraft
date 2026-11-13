@@ -10,6 +10,7 @@ from app.blueprints.jobs import has_accepted_quote, matching_jobs_query
 from app.decorators import confirmed_customer_required, verified_tradesperson_required
 from app.extensions import db
 from app.models import (
+    DEFAULT_DURATION_MINUTES,
     JOB_IN_PROGRESS,
     JOB_OPEN,
     ROLE_CUSTOMER,
@@ -23,8 +24,8 @@ bp = Blueprint("bookings", __name__, url_prefix="/bookings")
 
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 WEEKS_AHEAD = 4
-# A booking stores only its start, so every appointment counts as this long.
-APPOINTMENT_LENGTH = timedelta(hours=2)
+# A small job booked straight into a slot has no quote and so no stated duration.
+DEFAULT_LENGTH = timedelta(minutes=DEFAULT_DURATION_MINUTES)
 # Render runs on UTC, but a slot at 09:00 means 09:00 for people in Germany.
 LOCAL_TIME = ZoneInfo("Europe/Berlin")
 
@@ -34,14 +35,17 @@ def now_local():
     return datetime.now(LOCAL_TIME).replace(tzinfo=None)
 
 
-def has_overlap(tradesperson_id, starts_at):
+def overlaps_booking(booking, starts_at, ends_at):
     # Touching is fine: 09:00-11:00 and 11:00-13:00 do not overlap.
-    query = db.select(Booking.id).where(
-        Booking.tradesperson_id == tradesperson_id,
-        Booking.starts_at > starts_at - APPOINTMENT_LENGTH,
-        Booking.starts_at < starts_at + APPOINTMENT_LENGTH,
-    )
-    return db.session.scalar(query.limit(1)) is not None
+    return booking.starts_at < ends_at and starts_at < booking.ends_at
+
+
+def has_overlap(tradesperson_id, starts_at, length=DEFAULT_LENGTH):
+    """True if a booking of this tradesperson overlaps [starts_at, starts_at + length)."""
+    ends_at = starts_at + length
+    # Each booking brings its own stated length, so the comparison is done here and not in SQL.
+    bookings = db.session.scalars(db.select(Booking).filter_by(tradesperson_id=tradesperson_id))
+    return any(overlaps_booking(booking, starts_at, ends_at) for booking in bookings)
 
 
 # --- Tradesperson: weekly availability ----------------------------------------------------
@@ -182,14 +186,13 @@ def upcoming_starts(slot, now):
 
 def free_times(profile):
     """Every free (start, slot) pair of this tradesperson, soonest first."""
-    query = db.select(Booking.starts_at).filter_by(tradesperson_id=profile.user_id)
-    booked = list(db.session.scalars(query))
+    booked = list(db.session.scalars(db.select(Booking).filter_by(tradesperson_id=profile.user_id)))
     now = now_local()
     times = [
         (start, slot)
         for slot in profile.availability
         for start in upcoming_starts(slot, now)
-        if all(abs(start - other) >= APPOINTMENT_LENGTH for other in booked)
+        if not any(overlaps_booking(booking, start, start + DEFAULT_LENGTH) for booking in booked)
     ]
     return sorted(times, key=lambda entry: entry[0])
 

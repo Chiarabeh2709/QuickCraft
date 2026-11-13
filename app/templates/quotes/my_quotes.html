@@ -19,7 +19,7 @@
       <p class="text-body-secondary mb-2">
         {{ quote.job_trade.trade }} &middot; {{ job.city }} &middot; Job is {{ job.status | replace("_", " ") }}
       </p>
-      <p class="mb-2">&euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start|date_format }}</p>
+      <p class="mb-2">&euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start|date_format }} &middot; takes {{ quote.duration_minutes | duration }}</p>
       {% if quote.message %}<p class="mb-3" style="white-space: pre-line">{{ quote.message }}</p>{% endif %}
       {% if quote.status == "pending" %}
         <div class="d-flex gap-2">

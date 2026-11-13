@@ -120,6 +120,7 @@ def quote_form(app, job_id, trade="Plumber", **changes):
         "job_trade_id": job_trade_id(app, job_id, trade),
         "price": "150.00",
         "earliest_start": START.isoformat(),
+        "duration": "120",
         "message": "I can do this.",
     }
     return {**form, **changes}
@@ -345,7 +346,7 @@ def test_tradesperson_can_edit_own_pending_quote(app, client, customer_id, make_
 
     client.post(
         f"/quotes/{quote_id}/edit",
-        data={"price": "99.90", "earliest_start": new_start.isoformat(), "message": "Better offer."},
+        data={"price": "99.90", "earliest_start": new_start.isoformat(), "duration": "120", "message": "Better offer."},
     )
 
     with app.app_context():
@@ -369,7 +370,7 @@ def test_invalid_edit_changes_nothing(app, client, customer_id, make_tradesperso
     quote_id = add_quote(make_job(customer_id), make_tradesperson())
     login(BEN)
 
-    client.post(f"/quotes/{quote_id}/edit", data={"price": "0", "earliest_start": START.isoformat()})
+    client.post(f"/quotes/{quote_id}/edit", data={"price": "0", "earliest_start": START.isoformat(), "duration": "120"})
 
     with app.app_context():
         assert db.session.get(Quote, quote_id).price_cents == 15000
@@ -393,7 +394,7 @@ def test_only_pending_quotes_can_be_changed(app, client, customer_id, make_trade
     quote_id = add_quote(make_job(customer_id), make_tradesperson(), status=status)
     login(BEN)
 
-    client.post(f"/quotes/{quote_id}/edit", data={"price": "1", "earliest_start": START.isoformat()})
+    client.post(f"/quotes/{quote_id}/edit", data={"price": "1", "earliest_start": START.isoformat(), "duration": "120"})
     client.post(f"/quotes/{quote_id}/withdraw")
 
     with app.app_context():
