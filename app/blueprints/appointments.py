@@ -4,7 +4,7 @@ from datetime import date, datetime
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from app.blueprints.bookings import APPOINTMENT_LENGTH, WEEKDAYS, has_overlap, now_local
+from app.blueprints.bookings import WEEKDAYS, has_overlap, now_local
 from app.blueprints.jobs import missing_appointments
 from app.blueprints.quotes import accept_quote, can_accept, save_appointment
 from app.decorators import confirmed_customer_required
@@ -24,8 +24,8 @@ def requested_start():
         return None
 
 
-def fits_slot(slot, starts_at):
-    ends_at = starts_at + APPOINTMENT_LENGTH
+def fits_slot(slot, starts_at, length):
+    ends_at = starts_at + length
     return (
         slot.weekday == starts_at.weekday()
         and ends_at.date() == starts_at.date()
@@ -44,9 +44,9 @@ def time_error(quote, starts_at):
         return f"The appointment cannot be before the earliest start date, {quote.earliest_start:%d %b %Y}."
     slots = quote.tradesperson.profile.availability
     # A tradesperson without slots has told us nothing, so any time is allowed for now.
-    if slots and not any(fits_slot(slot, starts_at) for slot in slots):
+    if slots and not any(fits_slot(slot, starts_at, quote.duration) for slot in slots):
         return "This time is outside the tradesperson's availability."
-    if has_overlap(quote.tradesperson_id, starts_at):
+    if has_overlap(quote.tradesperson_id, starts_at, quote.duration):
         return "The tradesperson already has an appointment at this time. Please choose another one."
     return None
 

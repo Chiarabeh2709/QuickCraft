@@ -1,5 +1,6 @@
 import re
 import time
+from datetime import date, datetime
 
 import pytest
 
@@ -578,3 +579,34 @@ def test_pending_trade_is_stored_as_pending(seeded):
             db.select(TradespersonTrade).filter_by(status=TRADE_PENDING).order_by(TradespersonTrade.trade)
         ).all()
         assert [entry.trade for entry in pending] == ["Carpenter", "Painter"]
+
+
+# --- Durations in the demo data ----------------------------------------------------------
+
+
+def test_every_demo_quote_states_a_duration_that_fits_a_slot(seeded):
+    with seeded.app_context():
+        for quote in db.session.scalars(db.select(Quote)):
+            assert quote.duration_minutes % 30 == 0 and 30 <= quote.duration_minutes <= 480
+            slots = quote.tradesperson.profile.availability
+            longest = max(
+                (datetime.combine(date.min, s.end_time) - datetime.combine(date.min, s.start_time)).seconds // 60
+                for s in slots
+            )
+            assert quote.duration_minutes <= longest
+
+
+def test_demo_appointments_last_as_long_as_the_accepted_quote_and_never_overlap(seeded):
+    with seeded.app_context():
+        for booking in db.session.scalars(db.select(Booking)):
+            accepted = [
+                quote.duration_minutes
+                for row in booking.job.trades
+                for quote in row.quotes
+                if quote.tradesperson_id == booking.tradesperson_id and quote.status == QUOTE_ACCEPTED
+            ]
+            if accepted:  # small jobs booked into a slot have no quote
+                assert booking.duration_minutes == accepted[0]
+        for booking in db.session.scalars(db.select(Booking)):
+            others = [b for b in booking.tradesperson.bookings if b.id != booking.id]
+            assert not any(b.starts_at < booking.ends_at and booking.starts_at < b.ends_at for b in others)

@@ -24,7 +24,7 @@
           <span class="badge text-bg-{{ {'accepted': 'success', 'rejected': 'secondary'}.get(quote.status, 'primary') }}">
             {{ quote.status | capitalize }}
           </span><br>
-          &euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start|date_format }}
+          &euro;{{ quote.price_cents | euros }} &middot; can start {{ quote.earliest_start|date_format }} &middot; takes {{ quote.duration_minutes | duration }}
           {% if quote.message %}<p class="mb-0 mt-2" style="white-space: pre-line">{{ quote.message }}</p>{% endif %}
         </div>
         {% if quote.id in acceptable %}

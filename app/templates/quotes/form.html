@@ -33,6 +33,18 @@
              value="{{ request.form.get('earliest_start', quote.earliest_start.isoformat() if quote else '') }}">
     </div>
     <div class="mb-3">
+      <label class="form-label" for="duration">How long will the service take?</label>
+      {# Nothing preselected for a new quote, so the tradesperson has to think about it. The appointment blocks exactly this time. #}
+      {% set chosen = request.form.get("duration", quote.duration_minutes | string if quote else "") %}
+      <select class="form-select" id="duration" name="duration" required>
+        <option value="">Choose a duration</option>
+        {% for minutes in durations %}
+          <option value="{{ minutes }}" {{ "selected" if chosen == minutes | string }}>{{ minutes | duration }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">The customer books this much of your time, so nobody else can book it twice.</div>
+    </div>
+    <div class="mb-3">
       <label class="form-label" for="message">Message (optional)</label>
       <textarea class="form-control" id="message" name="message" rows="4"
                 maxlength="2000">{{ request.form.get("message", quote.message or "" if quote else "") }}</textarea>
