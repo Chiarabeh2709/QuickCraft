@@ -661,6 +661,7 @@ def test_job_page_offers_to_edit_a_pending_quote_instead(
     assert f"/quotes/{quote_id_of(app)}/edit" in page
     assert "Edit your quote" in page
     assert "150.00" in page  # the quote as it stands, so a typo is easy to spot
+    assert "takes 2 h" in page
     assert "Send a quote" not in page
 
 
@@ -685,10 +686,14 @@ def test_corrected_quote_shows_the_new_price_on_the_job_page(
     add_quote(job_id, tradesperson, status=QUOTE_PENDING)
     login("ben@example.com")
 
-    client.post(f"/quotes/{quote_id_of(app)}/edit", data={"price": "95", "earliest_start": "2030-02-01", "message": ""})
+    client.post(
+        f"/quotes/{quote_id_of(app)}/edit",
+        data={"price": "95", "earliest_start": "2030-02-01", "duration": "60", "message": ""},
+    )
 
     page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
     assert "95.00" in page and "150.00" not in page
+    assert "takes 1 h" in page  # the corrected duration shows too
 
 
 @pytest.mark.parametrize(
