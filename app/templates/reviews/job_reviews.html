@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Review job · QuickCraft{% endblock %}
+{% block title %}Review job | QuickCraft{% endblock %}
 {% block content %}
 <h1>Review {{ job.title }}</h1>
 {% if job.status != 'done' %}<p>Mark the job as done before leaving reviews.</p><form method="post" action="{{ url_for('reviews.mark_done', job_id=job.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Mark job as done</button></form>{% else %}
