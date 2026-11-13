@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash
 from app.blueprints.bookings import now_local, upcoming_starts
 from app.extensions import db
 from app.models import (
+    DEFAULT_DURATION_MINUTES,
     JOB_CANCELLED,
     JOB_DONE,
     JOB_IN_PROGRESS,
@@ -268,14 +269,14 @@ JOBS = {
 
 # Job, trade, tradesperson, price in cents, earliest start in days from today, status, message.
 QUOTES = (
-    ("boiler", "Heating engineer", "warm", 18000, 5, QUOTE_PENDING, "Service and radiator check, parts included."),
-    ("boiler", "Heating engineer", "allround", 16500, 9, QUOTE_PENDING, "A little later but cheaper, same service."),
-    ("bathroom", "Plumber", "harbor", 145000, 14, QUOTE_PENDING, "New shower and all pipework for the bathroom."),
-    ("shower", "Plumber", "harbor", 32000, 7, QUOTE_ACCEPTED, "Includes a new mixer and removing the old one."),
-    ("shower", "Plumber", "allround", 35000, 12, QUOTE_REJECTED, "Includes a new mixer."),
-    ("kitchen", "Tiler", "tiling", 98000, 14, QUOTE_ACCEPTED, "Wall tiles behind the worktop, about six square metres."),
-    ("kitchen", "Carpenter", "oak", 240000, 17, QUOTE_ACCEPTED, "Cabinets made to measure, fitted over four days."),
-    ("bedroom", "Painter", "coat", 42000, -21, QUOTE_ACCEPTED, "Two coats for walls and ceiling, paint included."),
+    ("boiler", "Heating engineer", "warm", 18000, 5, 150, QUOTE_PENDING, "Service and radiator check, parts included."),
+    ("boiler", "Heating engineer", "allround", 16500, 9, 120, QUOTE_PENDING, "A little later but cheaper, same service."),
+    ("bathroom", "Plumber", "harbor", 145000, 14, 180, QUOTE_PENDING, "New shower and all pipework for the bathroom."),
+    ("shower", "Plumber", "harbor", 32000, 7, 120, QUOTE_ACCEPTED, "Includes a new mixer and removing the old one."),
+    ("shower", "Plumber", "allround", 35000, 12, 120, QUOTE_REJECTED, "Includes a new mixer."),
+    ("kitchen", "Tiler", "tiling", 98000, 14, 180, QUOTE_ACCEPTED, "Wall tiles behind the worktop, about six square metres."),
+    ("kitchen", "Carpenter", "oak", 240000, 17, 180, QUOTE_ACCEPTED, "Cabinets made to measure, fitted over four days."),
+    ("bedroom", "Painter", "coat", 42000, -21, 180, QUOTE_ACCEPTED, "Two coats for walls and ceiling, paint included."),
 )
 
 
@@ -351,30 +352,41 @@ def job_trade(job, trade):
 
 
 def create_quotes(jobs, people, today):
-    for job_key, trade, person, price_cents, days, status, message in QUOTES:
+    for job_key, trade, person, price_cents, days, minutes, status, message in QUOTES:
         db.session.add(
             Quote(
                 job_trade=job_trade(jobs[job_key], trade),
                 tradesperson=people[person],
                 price_cents=price_cents,
                 earliest_start=today + timedelta(days=days),
+                duration_minutes=minutes,
                 status=status,
                 message=message,
             )
         )
 
 
+def stated_minutes(job, person):
+    """The duration from this tradesperson's accepted quote; a small job booked into a slot has none."""
+    for entry in job.trades:
+        for quote in entry.quotes:
+            if quote.tradesperson is person and quote.status == QUOTE_ACCEPTED:
+                return quote.duration_minutes
+    return DEFAULT_DURATION_MINUTES
+
+
 def create_booking(job, person, slot_index, week):
     # A real start of one of their weekly slots, so it looks exactly like a booking made in the app.
     slot = person.profile.availability[slot_index]
-    db.session.add(Booking(job=job, tradesperson=person, starts_at=upcoming_starts(slot, now_local())[week]))
+    starts_at = upcoming_starts(slot, now_local())[week]
+    db.session.add(Booking(job=job, tradesperson=person, starts_at=starts_at, duration_minutes=stated_minutes(job, person)))
 
 
 def create_past_booking(job, person):
     # Four weeks back from a real slot, so the finished job's appointment lies after its earliest start.
     slot = person.profile.availability[0]
     starts_at = upcoming_starts(slot, now_local())[1] - timedelta(weeks=4)
-    db.session.add(Booking(job=job, tradesperson=person, starts_at=starts_at))
+    db.session.add(Booking(job=job, tradesperson=person, starts_at=starts_at, duration_minutes=stated_minutes(job, person)))
 
 
 def create_bookings(jobs, people):
@@ -394,13 +406,17 @@ def first_start_from(person, earliest):
 def create_project(jobs, people, customers, today):
     job = jobs["kitchen"]
     project = Project(job=job)
+    # In the session right away: reading the quotes below would otherwise flush a half-built project.
+    db.session.add(project)
     # The appointments set the timeline, so both always show the same dates and the tiles still come first.
     tiles_time = first_start_from(people["tiling"], today + timedelta(days=14))
     tiles_start = tiles_time.date()
     cabinets_time = first_start_from(people["oak"], tiles_start + timedelta(days=3))
     cabinets_start = cabinets_time.date()
-    db.session.add(Booking(job=job, tradesperson=people["tiling"], starts_at=tiles_time))
-    db.session.add(Booking(job=job, tradesperson=people["oak"], starts_at=cabinets_time))
+    for person, starts_at in ((people["tiling"], tiles_time), (people["oak"], cabinets_time)):
+        db.session.add(
+            Booking(job=job, tradesperson=person, starts_at=starts_at, duration_minutes=stated_minutes(job, person))
+        )
     for trade, person, start, end in (
         ("Tiler", people["tiling"], tiles_start, tiles_start + timedelta(days=2)),
         ("Carpenter", people["oak"], cabinets_start, cabinets_start + timedelta(days=3)),

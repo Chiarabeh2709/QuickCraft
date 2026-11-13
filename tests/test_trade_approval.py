@@ -340,7 +340,7 @@ def test_existing_approved_trade_keeps_its_jobs_while_another_is_pending(
 
 
 def quote_form(job_trade):
-    return {"job_trade_id": job_trade, "price": "150.00", "earliest_start": "2031-01-06", "message": "Hello"}
+    return {"job_trade_id": job_trade, "price": "150.00", "earliest_start": "2031-01-06", "duration": "120", "message": "Hello"}
 
 
 def job_trade_id(app, job_id, trade):

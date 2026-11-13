@@ -1,5 +1,5 @@
 # Feature 3: sending and comparing quotes.
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
@@ -26,11 +26,22 @@ bp = Blueprint("quotes", __name__, url_prefix="/quotes")
 
 MAX_MESSAGE = 2000
 MAX_PRICE_EUROS = 1_000_000
+# Half-hour steps from 30 minutes to a full working day: a list to choose from cannot be mistyped.
+DURATION_CHOICES = tuple(range(30, 8 * 60 + 1, 30))
 
 
 @bp.app_template_filter("euros")
 def euros(cents):
     return f"{cents // 100}.{cents % 100:02d}"
+
+
+@bp.app_template_filter("duration")
+def duration_text(minutes):
+    """90 becomes "1.5 h", 30 becomes "30 min"."""
+    if minutes < 60:
+        return f"{minutes} min"
+    hours = minutes / 60
+    return f"{hours:g} h"
 
 
 # --- Reading the form ---------------------------------------------------------------------
@@ -56,12 +67,42 @@ def parse_earliest_start():
         return None
 
 
+def parse_duration_minutes():
+    minutes = request.form.get("duration", type=int)
+    # Only the offered choices count, so a hand-made request cannot store anything else.
+    return minutes if minutes in DURATION_CHOICES else None
+
+
 def quote_fields():
     return {
         "price_cents": parse_price_cents(),
         "earliest_start": parse_earliest_start(),
+        "duration_minutes": parse_duration_minutes(),
         "message": request.form.get("message", "").strip(),
     }
+
+
+def longest_slot_minutes(profile):
+    return max(
+        (
+            (datetime.combine(date.min, slot.end_time) - datetime.combine(date.min, slot.start_time)).seconds // 60
+            for slot in profile.availability
+        ),
+        default=None,
+    )
+
+
+def duration_errors(minutes):
+    if minutes is None:
+        return ["Please say how long the service will take."]
+    longest = longest_slot_minutes(current_user.profile)
+    # No slots at all means no limit yet; otherwise a quote that fits no slot could never be booked.
+    if longest is not None and minutes > longest:
+        return [
+            f"None of your availability slots is {duration_text(minutes)} long (the longest is "
+            f"{duration_text(longest)}). Choose a shorter time or add a longer slot under My availability."
+        ]
+    return []
 
 
 def field_errors(fields):
@@ -72,6 +113,7 @@ def field_errors(fields):
         errors.append("Please enter your earliest start date.")
     elif fields["earliest_start"] < now_local().date():
         errors.append("The earliest start date cannot be in the past.")
+    errors += duration_errors(fields["duration_minutes"])
     # The textarea has maxlength, but a hand-made request does not.
     if len(fields["message"]) > MAX_MESSAGE:
         errors.append(f"The message can have at most {MAX_MESSAGE} characters.")
@@ -155,7 +197,7 @@ def new(job_id):
             return redirect(url_for("quotes.my_quotes"))
         flash_errors(errors)
 
-    return render_template("quotes/form.html", job=job, trades=trades, quote=None)
+    return render_template("quotes/form.html", job=job, trades=trades, quote=None, durations=DURATION_CHOICES)
 
 
 # --- Tradesperson: manage own quotes ------------------------------------------------------
@@ -194,13 +236,14 @@ def edit(quote_id):
         if not errors:
             quote.price_cents = fields["price_cents"]
             quote.earliest_start = fields["earliest_start"]
+            quote.duration_minutes = fields["duration_minutes"]
             quote.message = fields["message"]
             db.session.commit()
             flash("Your quote was updated.", "success")
             return redirect(url_for("quotes.my_quotes"))
         flash_errors(errors)
 
-    return render_template("quotes/form.html", job=quote.job_trade.job, trades=[], quote=quote)
+    return render_template("quotes/form.html", job=quote.job_trade.job, trades=[], quote=quote, durations=DURATION_CHOICES)
 
 
 @bp.route("/<int:quote_id>/withdraw", methods=["POST"])
@@ -251,7 +294,14 @@ def compare(job_id):
 
 def save_appointment(quote, starts_at):
     """Returns False if somebody else just took this time."""
-    db.session.add(Booking(job_id=quote.job_trade.job_id, tradesperson_id=quote.tradesperson_id, starts_at=starts_at))
+    db.session.add(
+        Booking(
+            job_id=quote.job_trade.job_id,
+            tradesperson_id=quote.tradesperson_id,
+            starts_at=starts_at,
+            duration_minutes=quote.duration_minutes,
+        )
+    )
     try:
         # No "is it free?" check here: the unique constraint is the last line of defence against a double click.
         db.session.commit()

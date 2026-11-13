@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -29,6 +29,9 @@ TRADE_REJECTED = "rejected"
 
 # A fixed list, because free text ("Plumber", "plumbing") could never be matched to jobs.
 TRADES = ("Carpenter", "Electrician", "Heating engineer", "Painter", "Plumber", "Roofer", "Tiler")
+
+# What an appointment lasts when nobody stated a duration, for example a small job booked straight into a slot.
+DEFAULT_DURATION_MINUTES = 120
 
 
 def utcnow():
@@ -172,8 +175,15 @@ class Quote(db.Model):
     price_cents = db.Column(db.Integer, nullable=False)
     message = db.Column(db.Text)
     earliest_start = db.Column(db.Date, nullable=False)
+    # How long the service takes. The tradesperson states it up front, so appointments can never overlap.
+    # The default only serves code that creates a quote without the form; the form always asks.
+    duration_minutes = db.Column(db.Integer, nullable=False, default=DEFAULT_DURATION_MINUTES)
     status = db.Column(db.String(20), nullable=False, default=QUOTE_PENDING)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    @property
+    def duration(self):
+        return timedelta(minutes=self.duration_minutes)
 
     __table_args__ = (db.UniqueConstraint("job_trade_id", "tradesperson_id"),)
 
@@ -183,7 +193,13 @@ class Booking(db.Model):
     job_id = db.Column(db.ForeignKey("job.id"), nullable=False)
     tradesperson_id = db.Column(db.ForeignKey("user.id"), nullable=False)
     starts_at = db.Column(db.DateTime, nullable=False)
+    # Stored with the booking, so the overlap check still holds if the quote changes later.
+    duration_minutes = db.Column(db.Integer, nullable=False, default=DEFAULT_DURATION_MINUTES)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    @property
+    def ends_at(self):
+        return self.starts_at + timedelta(minutes=self.duration_minutes)
 
     # The database itself blocks two customers from booking the same slot.
     __table_args__ = (db.UniqueConstraint("tradesperson_id", "starts_at"),)
