@@ -544,7 +544,7 @@ def signed_up_customer(app, client):
     """A customer created through the real sign-up form, then logged out."""
     client.post(
         "/auth/signup/customer",
-        data={"name": "Clara", "email": "clara@example.com", "password": "correct-horse", **SIGNUP_FIELDS},
+        data={"name": "Clara", "email": "clara@example.com", "password": "correct-horse", "accept_terms": "1", **SIGNUP_FIELDS},
     )
     client.post("/auth/logout")
     with app.app_context():

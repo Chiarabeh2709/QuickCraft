@@ -33,6 +33,9 @@ TRADES = ("Carpenter", "Electrician", "Heating engineer", "Painter", "Plumber", 
 # What an appointment lasts when nobody stated a duration, for example a small job booked straight into a slot.
 DEFAULT_DURATION_MINUTES = 120
 
+# The date of the current Terms of Use. Change it whenever the text changes: everybody then has to accept again.
+TERMS_VERSION = "2026-11-13"
+
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -47,6 +50,9 @@ class User(UserMixin, db.Model):
     # Only tradespeople have a status. Empty never counts as verified, so the safe case is the default.
     verification_status = db.Column(db.String(20))
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    # Proof of consent (GDPR): when, and which version of the Terms of Use. Empty until accepted.
+    terms_accepted_at = db.Column(db.DateTime)
+    terms_version = db.Column(db.String(20))
     # Private. A customer's stay hidden from a tradesperson until a quote is accepted or a slot is booked;
     # a tradesperson's never appear on a public profile or in search.
     phone = db.Column(db.String(30))
@@ -66,6 +72,15 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def has_accepted_current_terms(self):
+        # An older version does not count: after a change of the text everybody accepts again.
+        return self.terms_version == TERMS_VERSION
+
+    def accept_terms(self):
+        self.terms_accepted_at = utcnow()
+        self.terms_version = TERMS_VERSION
 
     @property
     def is_verified_tradesperson(self):

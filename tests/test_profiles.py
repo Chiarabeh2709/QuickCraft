@@ -406,6 +406,7 @@ def test_edit_form_checks_csrf_token():
             email_verified=True,
         )
         user.set_password(PASSWORD)
+        user.accept_terms()
         user.profile = TradespersonProfile(company_name="Ben Plumbing", service_area="Berlin")
         db.session.add(user)
         db.session.commit()

@@ -16,7 +16,7 @@ from app.models import (
 from config import TestConfig
 
 CONTACT_FIELDS = {"phone": "+49 170 5550123", "street": "Hauptstrasse 12", "postal_code": "10115", "city": "Berlin"}
-CUSTOMER_FORM = {"name": "Anna", "email": "anna@example.com", "password": "correct-horse", **CONTACT_FIELDS}
+CUSTOMER_FORM = {"name": "Anna", "email": "anna@example.com", "password": "correct-horse", "accept_terms": "1", **CONTACT_FIELDS}
 TRADESPERSON_FORM = {
     "name": "Ben",
     **CONTACT_FIELDS,
@@ -25,7 +25,7 @@ TRADESPERSON_FORM = {
     "service_area": "Berlin",
     "qualification_reference": "HWK-12345",
     "email": "ben@example.com",
-    "password": "correct-horse",
+    "password": "correct-horse", "accept_terms": "1",
 }
 
 

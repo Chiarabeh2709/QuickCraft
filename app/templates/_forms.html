@@ -26,6 +26,19 @@
   </div>
 {% endmacro %}
 
+{# On both sign-up forms: nobody creates an account without accepting. Kept ticked after a failed submit. #}
+{% macro terms_checkbox() %}
+  {% set error = errors and errors.get("accept_terms") %}
+  <div class="form-check mb-3">
+    <input class="form-check-input{{ ' is-invalid' if error }}" type="checkbox" id="accept_terms" name="accept_terms"
+           value="1" required {{ "checked" if request.form.get("accept_terms") }}>
+    <label class="form-check-label" for="accept_terms">
+      I have read and accept the <a href="{{ url_for('legal.terms') }}" target="_blank" rel="noopener">Terms of Use</a>.
+    </label>
+    {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
+  </div>
+{% endmacro %}
+
 {# The same contact fields on both sign-up forms. #}
 {% macro contact_fields() %}
   {{ text_field("phone", "Phone number", type="tel", autocomplete="tel", maxlength=30) }}

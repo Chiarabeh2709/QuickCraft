@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash
 from app.blueprints.bookings import now_local, upcoming_starts
 from app.extensions import db
 from app.models import (
+    TERMS_VERSION,
     DEFAULT_DURATION_MINUTES,
     JOB_CANCELLED,
     JOB_DONE,
@@ -290,6 +291,8 @@ def create_customers(password_hash):
             address=address,
             role=ROLE_CUSTOMER,
             email_verified=True,
+            terms_accepted_at=utcnow(),
+            terms_version=TERMS_VERSION,
             password_hash=password_hash,
         )
     db.session.add_all(customers.values())
@@ -321,6 +324,8 @@ def create_tradespeople(password_hash):
             role=ROLE_TRADESPERSON,
             verification_status=data.get("status", VERIFICATION_VERIFIED),
             email_verified=True,
+            terms_accepted_at=utcnow(),
+            terms_version=TERMS_VERSION,
             password_hash=password_hash,
             profile=create_profile(data),
         )
