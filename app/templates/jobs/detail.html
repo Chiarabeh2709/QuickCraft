@@ -27,7 +27,16 @@
 {% if current_user.is_verified_tradesperson and project.is_member and project.accepted_trades >= 2 %}
   <p><a href="{{ url_for('projects.for_job', job_id=job.id) }}">Project page</a></p>
 {% endif %}
-{% if job.status == "open" %}
+{# One quote per job, so with a quote there is nothing new to send: a pending one can still be fixed. #}
+{% if my_quote and my_quote.status == "pending" %}
+  <p class="mb-2">Your quote: &euro;{{ my_quote.price_cents | euros }} &middot; can start {{ my_quote.earliest_start|date_format }} &middot; takes {{ my_quote.duration_minutes | duration }}</p>
+  <a class="btn btn-outline-primary" href="{{ url_for('quotes.edit', quote_id=my_quote.id) }}">Edit your quote</a>
+  <p class="form-text">You can change it until the customer accepts a quote.</p>
+{% elif my_quote and my_quote.status == "accepted" %}
+  <p><span class="badge text-bg-success">Accepted</span> The customer accepted your quote.</p>
+{% elif my_quote %}
+  <p class="text-body-secondary">The customer chose another quote for this trade.</p>
+{% elif job.status == "open" %}
   <a class="btn btn-primary" href="{{ url_for('quotes.new', job_id=job.id) }}">Send a quote</a>
 {% endif %}
 

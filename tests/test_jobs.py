@@ -627,3 +627,117 @@ def test_tradesperson_contact_data_appears_on_no_existing_page(
             page = response.get_data(as_text=True)
             assert tradesperson_phone not in page and tradesperson_address not in page
         client.post("/auth/logout")
+
+
+# --- Job page: send a quote, or fix the one already sent ----------------------------------
+
+
+def quote_id_of(app):
+    with app.app_context():
+        return db.session.scalar(db.select(Quote.id))
+
+
+def test_job_page_offers_to_send_a_quote_when_there_is_none(client, customer_id, make_tradesperson, make_job, login):
+    make_tradesperson()
+    job_id = make_job(customer_id)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert f"/quotes/job/{job_id}/new" in page
+    assert "Edit your quote" not in page
+
+
+def test_job_page_offers_to_edit_a_pending_quote_instead(
+    app, client, customer_id, make_tradesperson, make_job, add_quote, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(customer_id)
+    add_quote(job_id, tradesperson, status=QUOTE_PENDING)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert f"/quotes/{quote_id_of(app)}/edit" in page
+    assert "Edit your quote" in page
+    assert "150.00" in page  # the quote as it stands, so a typo is easy to spot
+    assert "takes 2 h" in page
+    assert "Send a quote" not in page
+
+
+def test_edit_link_on_the_job_page_opens_the_edit_form(
+    app, client, customer_id, make_tradesperson, make_job, add_quote, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(customer_id)
+    add_quote(job_id, tradesperson, status=QUOTE_PENDING)
+    login("ben@example.com")
+
+    response = client.get(f"/quotes/{quote_id_of(app)}/edit")
+
+    assert response.status_code == 200
+
+
+def test_corrected_quote_shows_the_new_price_on_the_job_page(
+    app, client, customer_id, make_tradesperson, make_job, add_quote, login
+):
+    tradesperson = make_tradesperson()
+    job_id = make_job(customer_id)
+    add_quote(job_id, tradesperson, status=QUOTE_PENDING)
+    login("ben@example.com")
+
+    client.post(
+        f"/quotes/{quote_id_of(app)}/edit",
+        data={"price": "95", "earliest_start": "2030-02-01", "duration": "60", "message": ""},
+    )
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+    assert "95.00" in page and "150.00" not in page
+    assert "takes 1 h" in page  # the corrected duration shows too
+
+
+@pytest.mark.parametrize(
+    "status, text",
+    [(QUOTE_ACCEPTED, "accepted your quote"), (QUOTE_REJECTED, "chose another quote")],
+)
+def test_job_page_cannot_edit_a_quote_the_customer_already_decided(
+    app, client, customer_id, make_tradesperson, make_job, add_quote, login, status, text
+):
+    tradesperson = make_tradesperson()
+    # A multi-trade job stays open after one quote is decided, so the tradesperson can still open it.
+    job_id = make_job(customer_id, trades=("Plumber", "Tiler"))
+    add_quote(job_id, tradesperson, status=status)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert text in page
+    assert "Edit your quote" not in page and "Send a quote" not in page
+
+
+def test_another_tradespersons_quote_does_not_hide_my_send_button(
+    client, customer_id, make_tradesperson, make_job, add_quote, login
+):
+    other = make_tradesperson(email="rita@example.com")
+    make_tradesperson(email="ben@example.com")
+    job_id = make_job(customer_id)
+    add_quote(job_id, other, status=QUOTE_PENDING)
+    login("ben@example.com")
+
+    page = client.get(f"/jobs/{job_id}").get_data(as_text=True)
+
+    assert "Send a quote" in page
+    assert "Edit your quote" not in page
+
+
+def test_tradesperson_cannot_edit_somebody_elses_quote_through_the_job_page_link(
+    app, client, customer_id, make_tradesperson, make_job, add_quote, login
+):
+    other = make_tradesperson(email="rita@example.com")
+    make_tradesperson(email="ben@example.com")
+    job_id = make_job(customer_id)
+    add_quote(job_id, other, status=QUOTE_PENDING)
+    login("ben@example.com")
+
+    # Even with the link typed by hand, the edit route keeps its own ownership check.
+    assert client.get(f"/quotes/{quote_id_of(app)}/edit").status_code == 403

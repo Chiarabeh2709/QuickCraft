@@ -179,6 +179,12 @@ def has_contact_access(job, user):
     )
 
 
+def find_my_quote(job, user):
+    """The tradesperson's own quote on this job, or None. The rule is one quote per job."""
+    query = db.select(Quote).join(JobTrade).where(JobTrade.job_id == job.id, Quote.tradesperson_id == user.id)
+    return db.session.scalar(query.limit(1))
+
+
 @bp.route("/")
 @verified_tradesperson_required
 def job_list():
@@ -213,6 +219,7 @@ def detail(job_id):
         "jobs/detail.html",
         job=job,
         show_contact=show_contact,
+        my_quote=find_my_quote(job, current_user),
         my_bookings=my_bookings,
         thread=thread,
         has_thread_access=is_eligible(job, current_user),
