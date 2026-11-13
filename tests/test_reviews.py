@@ -399,3 +399,60 @@ def test_review_works_for_a_tradesperson_who_has_no_approved_trade_anymore(app, 
     assert response.request.path == f"/reviews/jobs/{job}"
     with app.app_context():
         assert db.session.scalar(db.select(Review).where(Review.job_id == job)).stars == 5
+
+
+# --- The rating form: no star preselected, a rating is required, the comment is optional ---
+
+
+def open_review_form(client, login, review_fixture):
+    login(review_fixture["customer"])
+    client.post(f"/reviews/jobs/{review_fixture['job']}/done")
+    return client.get(f"/reviews/jobs/{review_fixture['job']}").get_data(as_text=True)
+
+
+def review_count(app):
+    with app.app_context():
+        return db.session.scalar(db.select(db.func.count(Review.id)))
+
+
+def test_rating_form_has_five_stars_and_none_is_preselected(client, login, review_fixture):
+    page = open_review_form(client, login, review_fixture)
+
+    assert page.count('type="radio"') == 5
+    assert "checked" not in page
+    assert "<select" not in page  # the old dropdown started on 1
+
+
+def test_rating_is_required_in_the_form_but_the_comment_is_not(client, login, review_fixture):
+    page = open_review_form(client, login, review_fixture)
+
+    assert page.count('type="radio"') == 5
+    assert page.count("required") == 5  # every star carries it, so the browser blocks an empty submit
+    comment_field = page[page.index("<textarea") : page.index("</textarea>")]
+    assert "required" not in comment_field
+    assert "Comment (optional)" in page
+
+
+@pytest.mark.parametrize("data", [{}, {"stars": ""}, {"comment": "Nice, but I forgot the stars"}])
+def test_review_without_a_rating_is_not_saved_and_the_customer_is_told(app, client, login, review_fixture, data):
+    open_review_form(client, login, review_fixture)
+    job, worker = review_fixture["job"], review_fixture["worker"]
+
+    response = client.post(f"/reviews/jobs/{job}/tradespeople/{worker}", data=data, follow_redirects=True)
+
+    assert response.status_code == 200
+    assert "Please choose a star rating" in response.get_data(as_text=True)
+    assert review_count(app) == 0
+    # Still possible afterwards: the missing rating did not use up the one review.
+    assert client.post(f"/reviews/jobs/{job}/tradespeople/{worker}", data={"stars": "4"}).status_code == 302
+    assert review_count(app) == 1
+
+
+def test_review_with_a_rating_and_no_comment_is_saved(app, client, login, review_fixture):
+    open_review_form(client, login, review_fixture)
+
+    client.post(f"/reviews/jobs/{review_fixture['job']}/tradespeople/{review_fixture['worker']}", data={"stars": "3"})
+
+    with app.app_context():
+        review = db.session.scalar(db.select(Review))
+        assert (review.stars, review.comment) == (3, None)
