@@ -325,7 +325,7 @@ def test_navbar_collapses_on_small_screens(client, logged_in):
 
 
 def main_links(client):
-    html = client.get("/").get_data(as_text=True).split("<main", 1)[1]
+    html = client.get("/").get_data(as_text=True).split("<main", 1)[1].split("</main>", 1)[0]  # not the footer
     parser = NavbarParser()
     parser.in_nav = True
     parser.feed(html)

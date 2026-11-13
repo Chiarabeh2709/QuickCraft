@@ -37,6 +37,7 @@ def make_user(app):
                 email=email, name="Test User", role=role, verification_status=status, email_verified=email_verified
             )
             user.set_password(PASSWORD)
+            user.accept_terms()  # Otherwise every login would be sent to the acceptance page first.
             db.session.add(user)
             db.session.commit()
             return user.id

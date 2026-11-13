@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_forms.html" import csrf_field %}
+
+{% block title %}Accept the Terms of Use | QuickCraft{% endblock %}
+
+{% block content %}
+<div class="narrow-form" style="max-width: 44rem">
+  <h1 class="h3">Please accept the Terms of Use</h1>
+  <p>You need to accept the current Terms of Use before you can use QuickCraft.</p>
+  <div class="card mb-3">
+    <div class="card-body overflow-auto" style="max-height: 20rem">
+      {% include "legal/_terms_text.html" %}
+    </div>
+  </div>
+  <form method="post">
+    {{ csrf_field() }}
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="accept_terms" name="accept_terms" value="1" required>
+      <label class="form-check-label" for="accept_terms">I have read and accept the Terms of Use.</label>
+    </div>
+    <button class="btn btn-primary" type="submit">Accept and continue</button>
+  </form>
+  <p class="mt-3 text-body-secondary">If you do not accept, you can only log out.</p>
+</div>
+{% endblock %}

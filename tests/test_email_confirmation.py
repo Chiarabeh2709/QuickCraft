@@ -77,7 +77,7 @@ def test_signup_goes_to_confirm_page_unconfirmed(app, client, signup_url, form):
     account = {
         "name": "Test",
         "email": EMAIL,
-        "password": "correct-horse",
+        "password": "correct-horse", "accept_terms": "1",
         "phone": "+49 170 5550123",
         "street": "Hauptstrasse 12",
         "postal_code": "10115",
@@ -151,6 +151,7 @@ def test_confirm_without_csrf_token_is_rejected():
     with app.app_context():
         user = User(email=EMAIL, name="Test", role=ROLE_CUSTOMER)
         user.set_password("correct-horse")
+        user.accept_terms()
         db.session.add(user)
         db.session.commit()
         user_id = user.id

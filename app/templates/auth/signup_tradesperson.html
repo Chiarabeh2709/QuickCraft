@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field, text_field, password_field, contact_fields with context %}
+{% from "_forms.html" import csrf_field, text_field, password_field, contact_fields, terms_checkbox with context %}
 
 {% block title %}Sign up as a tradesperson | QuickCraft{% endblock %}
 
@@ -26,6 +26,7 @@
     {{ text_field("service_area", "City or service area") }}
     {{ text_field("qualification_reference", "Qualification reference number", maxlength=50) }}
     {{ password_field("new-password", "At least 8 characters.") }}
+    {{ terms_checkbox() }}
     <button class="btn btn-primary w-100" type="submit">Create account</button>
   </form>
   <p class="form-text mt-3">

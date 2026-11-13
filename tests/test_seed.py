@@ -610,3 +610,11 @@ def test_demo_appointments_last_as_long_as_the_accepted_quote_and_never_overlap(
         for booking in db.session.scalars(db.select(Booking)):
             others = [b for b in booking.tradesperson.bookings if b.id != booking.id]
             assert not any(b.starts_at < booking.ends_at and booking.starts_at < b.ends_at for b in others)
+
+
+def test_demo_users_have_accepted_the_current_terms(seeded):
+    from app.models import TERMS_VERSION
+
+    with seeded.app_context():
+        users = db.session.scalars(db.select(User).where(User.role != "admin")).all()
+        assert users and all(user.terms_version == TERMS_VERSION for user in users)

@@ -10,6 +10,7 @@ from app.blueprints import (
     auth,
     bookings,
     jobs,
+    legal,
     main,
     messages,
     profiles,
@@ -43,7 +44,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    for module in (main, auth, jobs, profiles, quotes, bookings, appointments, messages, projects, reviews, admin):
+    for module in (main, auth, legal, jobs, profiles, quotes, bookings, appointments, messages, projects, reviews, admin):
         app.register_blueprint(module.bp)
 
     app.register_error_handler(403, forbidden)

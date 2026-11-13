@@ -48,7 +48,7 @@ Every push to `main` now deploys automatically. If a build fails, the previous v
 ## Check that it works
 
 1. Open the URL. The first request after a spin-down can take a while.
-2. Sign up as a tradesperson. The page should say your account is waiting for approval.
+2. Sign up as a tradesperson and tick the box for the Terms of Use. The page should say your account is waiting for approval.
 3. Log out, then log in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 4. Approve the tradesperson under **Pending tradespeople**.
 

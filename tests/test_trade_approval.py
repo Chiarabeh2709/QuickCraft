@@ -484,7 +484,7 @@ def test_no_labels_when_all_trades_are_approved(client, make_tradesperson, login
 SIGNUP_FORM = {
     "name": "Ben",
     "email": BEN,
-    "password": "correct-horse",
+    "password": "correct-horse", "accept_terms": "1",
     "phone": "+49 170 5550123",
     "street": "Hauptstrasse 12",
     "postal_code": "10115",
@@ -619,6 +619,7 @@ def test_deciding_a_trade_checks_csrf_token():
             email=BEN, name="Ben", role=ROLE_TRADESPERSON, verification_status=VERIFICATION_VERIFIED, email_verified=True
         )
         person.set_password(PASSWORD)
+        person.accept_terms()
         person.profile = TradespersonProfile(
             company_name=COMPANY, service_area="Berlin", trades=[TradespersonTrade(trade="Electrician")]
         )

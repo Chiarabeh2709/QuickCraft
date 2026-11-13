@@ -84,6 +84,9 @@ def account_errors():
     # Not stripped: spaces are allowed in a password.
     if len(request.form.get("password", "")) < MIN_PASSWORD_LENGTH:
         errors["password"] = f"Your password needs at least {MIN_PASSWORD_LENGTH} characters."
+    # The browser requires the box too, but a hand-made request does not.
+    if not request.form.get("accept_terms"):
+        errors["accept_terms"] = "Please accept the Terms of Use to create an account."
     return errors
 
 
@@ -106,6 +109,7 @@ def build_user(role, verification_status=None):
         verification_status=verification_status,
     )
     user.set_password(request.form.get("password", ""))
+    user.accept_terms()  # Checked in account_errors; stored as the proof of consent.
     return user
 
 
