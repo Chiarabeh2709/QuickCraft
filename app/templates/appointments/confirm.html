@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 
 {% block title %}Confirm appointment | QuickCraft{% endblock %}
 
@@ -26,13 +26,14 @@
 
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     <div class="mb-3">
-      <label class="form-label" for="date">Date</label>
+      <label class="form-label" for="date">Date{{ required_mark() }}</label>
       <input class="form-control" id="date" name="date" type="date" required
              value="{{ request.form.get('date', default_date.isoformat()) }}">
     </div>
     <div class="mb-3">
-      <label class="form-label" for="time">Time</label>
+      <label class="form-label" for="time">Time{{ required_mark() }}</label>
       <input class="form-control" id="time" name="time" type="time" required
              value="{{ request.form.get('time', '') }}">
     </div>

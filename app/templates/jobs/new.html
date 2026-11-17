@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field, text_field with context %}
+{% from "_forms.html" import csrf_field, required_mark, required_note, text_field with context %}
 
 {% block title %}Post a job | QuickCraft{% endblock %}
 
@@ -8,15 +8,16 @@
   <h1 class="h3 mb-3">Post a job</h1>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     {{ text_field("title", "Title") }}
     <div class="mb-3">
-      <label class="form-label" for="description">Description</label>
+      <label class="form-label" for="description">Description{{ required_mark() }}</label>
       <textarea class="form-control" id="description" name="description" rows="5" required
                 maxlength="2000">{{ request.form.get("description", "") }}</textarea>
     </div>
     {{ text_field("city", "City", autocomplete="address-level2") }}
     <fieldset class="mb-3">
-      <legend class="form-label fs-6">Which trades do you need?</legend>
+      <legend class="form-label fs-6">Which trades do you need?{{ required_mark() }}</legend>
       {% for trade in trades %}
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="trade-{{ trade|slug }}" name="trades" value="{{ trade }}"

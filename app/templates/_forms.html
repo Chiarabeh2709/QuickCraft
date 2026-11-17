@@ -1,5 +1,11 @@
 {# Import with "with context" so these macros can read request.form and errors. #}
 
+{# Decorative: the input's required attribute already tells screen readers the field is required. #}
+{% macro required_mark() %}<span class="qc-req" aria-hidden="true">*</span>{% endmacro %}
+
+{# Once per form, to explain the asterisk. Hidden from screen readers for the same reason as the asterisk. #}
+{% macro required_note() %}<p class="qc-req-note" aria-hidden="true"><span class="qc-req">*</span> required field</p>{% endmacro %}
+
 {% macro csrf_field() %}
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% endmacro %}
@@ -8,7 +14,7 @@
 {% macro text_field(name, label, type="text", autocomplete="off", maxlength=120) %}
   {% set error = errors and errors.get(name) %}
   <div class="mb-3">
-    <label class="form-label" for="{{ name }}">{{ label }}</label>
+    <label class="form-label" for="{{ name }}">{{ label }}{{ required_mark() }}</label>
     <input class="form-control{{ ' is-invalid' if error }}" id="{{ name }}" name="{{ name }}" type="{{ type }}" required
            maxlength="{{ maxlength }}" autocomplete="{{ autocomplete }}" value="{{ request.form.get(name, '') }}">
     {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
@@ -19,7 +25,7 @@
 {% macro password_field(autocomplete, hint="") %}
   {% set error = errors and errors.get("password") %}
   <div class="mb-3">
-    <label class="form-label" for="password">Password</label>
+    <label class="form-label" for="password">Password{{ required_mark() }}</label>
     <input class="form-control{{ ' is-invalid' if error }}" id="password" name="password" type="password" required autocomplete="{{ autocomplete }}">
     {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
     {% if hint %}<div class="form-text">{{ hint }}</div>{% endif %}
@@ -33,7 +39,7 @@
     <input class="form-check-input{{ ' is-invalid' if error }}" type="checkbox" id="accept_terms" name="accept_terms"
            value="1" required {{ "checked" if request.form.get("accept_terms") }}>
     <label class="form-check-label" for="accept_terms">
-      I have read and accept the <a href="{{ url_for('legal.terms') }}" target="_blank" rel="noopener">Terms of Use</a>.
+      I have read and accept the <a href="{{ url_for('legal.terms') }}" target="_blank" rel="noopener">Terms of Use</a>.{{ required_mark() }}
     </label>
     {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
   </div>

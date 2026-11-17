@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 
 {% block title %}Edit my profile | QuickCraft{% endblock %}
 
@@ -9,6 +9,7 @@
   <p class="text-body-secondary">{{ profile.company_name }}</p>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     <div class="mb-3">
       <label class="form-label" for="description">Short description</label>
       <textarea class="form-control{{ ' is-invalid' if errors.get('description') }}" id="description" name="description"
@@ -16,7 +17,7 @@
       {% if errors.get("description") %}<div class="invalid-feedback">{{ errors.get("description") }}</div>{% endif %}
     </div>
     <fieldset class="mb-3">
-      <legend class="form-label fs-6">Your trades</legend>
+      <legend class="form-label fs-6">Your trades{{ required_mark() }}</legend>
       {% for trade in trades %}
         <div class="form-check">
           <input class="form-check-input{{ ' is-invalid' if errors.get('trades') }}" type="checkbox" id="trade-{{ trade|slug }}"
@@ -36,7 +37,7 @@
       {% if errors.get("trades") %}<div class="invalid-feedback d-block">{{ errors.get("trades") }}</div>{% endif %}
     </fieldset>
     <div class="mb-3">
-      <label class="form-label" for="service_area">City or service area</label>
+      <label class="form-label" for="service_area">City or service area{{ required_mark() }}</label>
       <input class="form-control{{ ' is-invalid' if errors.get('service_area') }}" id="service_area" name="service_area"
              type="text" required maxlength="120" value="{{ service_area }}">
       {% if errors.get("service_area") %}<div class="invalid-feedback">{{ errors.get("service_area") }}</div>{% endif %}

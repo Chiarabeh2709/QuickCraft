@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_forms.html" import required_mark, required_note %}
 {% block title %}Project | QuickCraft{% endblock %}
 {% block content %}
 <h1 class="h3">{{ project.job.title }}</h1>
@@ -20,8 +21,9 @@
   <h2 class="h4">Propose your dates</h2>
   <form method="post" action="{{ url_for('projects.propose_schedule', project_id=project.id) }}" class="row g-2 mb-4">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="col-md-4"><label class="form-label" for="start_date">Start</label><input class="form-control" type="date" id="start_date" name="start_date" required></div>
-    <div class="col-md-4"><label class="form-label" for="end_date">End</label><input class="form-control" type="date" id="end_date" name="end_date" required></div>
+    <div class="col-12">{{ required_note() }}</div>
+    <div class="col-md-4"><label class="form-label" for="start_date">Start{{ required_mark() }}</label><input class="form-control" type="date" id="start_date" name="start_date" required></div>
+    <div class="col-md-4"><label class="form-label" for="end_date">End{{ required_mark() }}</label><input class="form-control" type="date" id="end_date" name="end_date" required></div>
     <div class="col-md-4 align-self-end"><button class="btn btn-primary" type="submit">Save dates</button></div>
   </form>
 {% endif %}
@@ -30,7 +32,8 @@
 {% for comment in project.comments %}<p class="border rounded p-3 mb-2"><strong>{{ comment.author.name }}</strong>{% if comment.proposed_date %} ({{ comment.proposed_date|date_format }}){% endif %}: {{ comment.body }}</p>{% else %}<p class="text-body-secondary">No comments yet.</p>{% endfor %}
 <form class="mt-3" method="post" action="{{ url_for('projects.add_comment', project_id=project.id) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <label class="form-label" for="body">Add a comment</label>
+  {{ required_note() }}
+  <label class="form-label" for="body">Add a comment{{ required_mark() }}</label>
   <textarea class="form-control mb-2" id="body" name="body" required></textarea>
   <button class="btn btn-secondary" type="submit">Comment</button>
 </form>

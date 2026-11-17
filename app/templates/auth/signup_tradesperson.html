@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field, text_field, password_field, contact_fields, terms_checkbox with context %}
+{% from "_forms.html" import csrf_field, required_mark, required_note, text_field, password_field, contact_fields, terms_checkbox with context %}
 
 {% block title %}Sign up as a tradesperson | QuickCraft{% endblock %}
 
@@ -9,12 +9,13 @@
   <p class="text-body-secondary">We check your details before you can see jobs and send quotes.</p>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     {{ text_field("name", "Full name", autocomplete="name") }}
     {{ text_field("email", "Email", type="email", autocomplete="email", maxlength=255) }}
     {{ contact_fields() }}
     {{ text_field("company_name", "Company name", autocomplete="organization") }}
     <div class="mb-3">
-      <label class="form-label" for="trade">Trade</label>
+      <label class="form-label" for="trade">Trade{{ required_mark() }}</label>
       <select class="form-select{{ ' is-invalid' if errors.get('trade') }}" id="trade" name="trade" required>
         <option value="">Choose your trade</option>
         {% for trade in trades %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 
 {% block title %}{{ "Edit quote" if quote else "Send a quote" }} | QuickCraft{% endblock %}
 
@@ -9,11 +9,12 @@
   <p class="text-body-secondary">{{ job.title }} &middot; {{ job.city }}</p>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     {% if quote %}
       <p>Trade: {{ quote.job_trade.trade }}</p>
     {% else %}
       <div class="mb-3">
-        <label class="form-label" for="job_trade_id">Trade</label>
+        <label class="form-label" for="job_trade_id">Trade{{ required_mark() }}</label>
         <select class="form-select" id="job_trade_id" name="job_trade_id" required>
           {% for job_trade in trades %}
             <option value="{{ job_trade.id }}"
@@ -23,17 +24,17 @@
       </div>
     {% endif %}
     <div class="mb-3">
-      <label class="form-label" for="price">Price in euros</label>
+      <label class="form-label" for="price">Price in euros{{ required_mark() }}</label>
       <input class="form-control" id="price" name="price" inputmode="decimal" required
              value="{{ request.form.get('price', quote.price_cents | euros if quote else '') }}">
     </div>
     <div class="mb-3">
-      <label class="form-label" for="earliest_start">Earliest start date</label>
+      <label class="form-label" for="earliest_start">Earliest start date{{ required_mark() }}</label>
       <input class="form-control" id="earliest_start" name="earliest_start" type="date" required
              value="{{ request.form.get('earliest_start', quote.earliest_start.isoformat() if quote else '') }}">
     </div>
     <div class="mb-3">
-      <label class="form-label" for="duration">How long will the service take?</label>
+      <label class="form-label" for="duration">How long will the service take?{{ required_mark() }}</label>
       {# Nothing preselected for a new quote, so the tradesperson has to think about it. The appointment blocks exactly this time. #}
       {% set chosen = request.form.get("duration", quote.duration_minutes | string if quote else "") %}
       <select class="form-select" id="duration" name="duration" required>

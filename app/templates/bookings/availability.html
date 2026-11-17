@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 
 {% block title %}My availability | QuickCraft{% endblock %}
 
@@ -30,8 +30,9 @@
   <h2 class="h5">Add a slot</h2>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     <div class="mb-3">
-      <label class="form-label" for="weekday">Weekday</label>
+      <label class="form-label" for="weekday">Weekday{{ required_mark() }}</label>
       <select class="form-select" id="weekday" name="weekday" required>
         {% for weekday in weekdays %}
           <option value="{{ loop.index0 }}" {{ "selected" if request.form.get("weekday") == loop.index0 | string }}>{{ weekday }}</option>
@@ -39,12 +40,12 @@
       </select>
     </div>
     <div class="mb-3">
-      <label class="form-label" for="start_time">Start time</label>
+      <label class="form-label" for="start_time">Start time{{ required_mark() }}</label>
       <input class="form-control" id="start_time" name="start_time" type="time" required
              value="{{ request.form.get('start_time', '') }}">
     </div>
     <div class="mb-3">
-      <label class="form-label" for="end_time">End time</label>
+      <label class="form-label" for="end_time">End time{{ required_mark() }}</label>
       <input class="form-control" id="end_time" name="end_time" type="time" required
              value="{{ request.form.get('end_time', '') }}">
     </div>
