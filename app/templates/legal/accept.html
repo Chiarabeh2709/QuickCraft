@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 
 {% block title %}Accept the Terms of Use | QuickCraft{% endblock %}
 
@@ -14,9 +14,10 @@
   </div>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     <div class="form-check mb-3">
       <input class="form-check-input" type="checkbox" id="accept_terms" name="accept_terms" value="1" required>
-      <label class="form-check-label" for="accept_terms">I have read and accept the Terms of Use.</label>
+      <label class="form-check-label" for="accept_terms">I have read and accept the Terms of Use.{{ required_mark() }}</label>
     </div>
     <button class="btn btn-primary" type="submit">Accept and continue</button>
   </form>

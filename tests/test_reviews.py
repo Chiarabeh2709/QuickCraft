@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -427,7 +428,10 @@ def test_rating_is_required_in_the_form_but_the_comment_is_not(client, login, re
     page = open_review_form(client, login, review_fixture)
 
     assert page.count('type="radio"') == 5
-    assert page.count("required") == 5  # every star carries it, so the browser blocks an empty submit
+    # Count the star inputs themselves: the page also says "required field" to explain the asterisk.
+    stars = re.findall(r'<input[^>]*name="stars"[^>]*>', page)
+    assert len(stars) == 5
+    assert len([star for star in stars if re.search(r"\brequired\b", star)]) == 5  # every star carries it, so the browser blocks an empty submit
     comment_field = page[page.index("<textarea") : page.index("</textarea>")]
     assert "required" not in comment_field
     assert "Comment (optional)" in page

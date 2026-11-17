@@ -1,4 +1,4 @@
-{% from "_forms.html" import csrf_field %}
+{% from "_forms.html" import csrf_field, required_mark, required_note %}
 {# Needs: job, thread, writable, tradesperson_id. Jinja escapes every message, so HTML stays plain text. #}
 {% if thread %}
   {% for message in thread.messages %}
@@ -17,8 +17,9 @@
 {% if writable %}
   <form method="post" action="{{ url_for('messages.conversation', job_id=job.id, tradesperson_id=tradesperson_id) }}">
     {{ csrf_field() }}
+    {{ required_note() }}
     <div class="mb-2">
-      <label class="form-label" for="body">Your message</label>
+      <label class="form-label" for="body">Your message{{ required_mark() }}</label>
       <textarea class="form-control" id="body" name="body" rows="3" maxlength="1000" required>{{ request.form.get("body", "") }}</textarea>
     </div>
     <button class="btn btn-primary btn-sm" type="submit">Send</button>

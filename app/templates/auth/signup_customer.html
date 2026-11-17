@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field, text_field, password_field, contact_fields, terms_checkbox with context %}
+{% from "_forms.html" import csrf_field, required_note, text_field, password_field, contact_fields, terms_checkbox with context %}
 
 {% block title %}Sign up as a customer | QuickCraft{% endblock %}
 
@@ -8,6 +8,7 @@
   <h1 class="h3 mb-3">Sign up as a customer</h1>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     {{ text_field("name", "Full name", autocomplete="name") }}
     {{ text_field("email", "Email", type="email", autocomplete="email", maxlength=255) }}
     {{ contact_fields() }}

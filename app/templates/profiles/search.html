@@ -31,7 +31,7 @@
     <div class="card-body">
       <h2 class="h5">
         <a class="stretched-link text-decoration-none" href="{{ url_for('profiles.detail', profile_id=profile.id) }}">{{ profile.company_name }}</a>
-        <span class="badge badge-verified ms-1">Verified</span>
+        {% include "_verified_badge.html" %}
       </h2>
       <p class="text-body-secondary mb-0">
         {{ profile.approved_trades | join(", ") }} &middot; {{ profile.service_area }}

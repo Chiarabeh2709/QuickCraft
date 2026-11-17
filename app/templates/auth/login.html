@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_forms.html" import csrf_field, text_field, password_field with context %}
+{% from "_forms.html" import csrf_field, required_note, text_field, password_field with context %}
 
 {% block title %}Log in | QuickCraft{% endblock %}
 
@@ -8,6 +8,7 @@
   <h1 class="h3 mb-3">Log in</h1>
   <form method="post">
     {{ csrf_field() }}
+    {{ required_note() }}
     {{ text_field("email", "Email", type="email", autocomplete="email", maxlength=255) }}
     {{ password_field("current-password") }}
     <button class="btn btn-primary w-100" type="submit">Log in</button>

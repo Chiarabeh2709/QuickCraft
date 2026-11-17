@@ -6,7 +6,7 @@
 {% block content %}
 <h1 class="h3">
   {{ profile.company_name }}
-  <span class="badge badge-verified ms-1">Verified</span>
+  {% include "_verified_badge.html" %}
 </h1>
 <p class="text-body-secondary">
   {% if profile.approved_trades %}{{ profile.approved_trades | join(", ") }} &middot; {% endif %}{{ profile.service_area }}
