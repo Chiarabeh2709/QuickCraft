@@ -3,7 +3,8 @@
 {% block title %}Page not found | QuickCraft{% endblock %}
 
 {% block content %}
-<div class="py-5 text-center">
+<div class="qc-error-card">
+  <span class="qc-error-code" aria-hidden="true">404</span>
   <h1 class="h3">Page not found</h1>
   <p class="text-body-secondary">The page you requested does not exist.</p>
   <a class="btn btn-primary" href="{{ url_for('main.home') }}">Back to home</a>

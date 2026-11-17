@@ -24,9 +24,9 @@
           <label class="form-check-label" for="trade-{{ trade|slug }}">
             {{ trade }}
             {% if trade_status.get(trade) == "pending" %}
-              <span class="badge text-bg-warning ms-1">waiting for approval</span>
+              <span class="badge status-badge status-pending ms-1">waiting for approval</span>
             {% elif trade_status.get(trade) == "rejected" %}
-              <span class="badge text-bg-danger ms-1">rejected</span>
+              <span class="badge status-badge status-rejected ms-1">rejected</span>
             {% endif %}
           </label>
         </div>

@@ -3,9 +3,9 @@
 {% block title %}QuickCraft: find a tradesperson in a few steps{% endblock %}
 
 {% block content %}
-<section class="py-4 py-md-5 text-center">
-  <h1 class="display-5 fw-bold">Find the right tradesperson, fast</h1>
-  <p class="lead text-body-secondary mx-auto" style="max-width: 36rem">
+<section class="qc-hero">
+  <h1>Find the right tradesperson, fast</h1>
+  <p class="lead text-body-secondary mx-auto">
     Describe your job, compare quotes from verified tradespeople and pick whoever can start soonest.
   </p>
   {# The next step for each role, using the same rules as the navbar. Pending tradespeople have none yet. #}
@@ -28,7 +28,9 @@
   </div>
 </section>
 
-<section class="row g-3 pb-5">
+{# No links below: each role's single next step lives in the hero above. #}
+<h2 class="qc-section-title h3">How it works</h2>
+<section class="row g-3">
   <div class="col-12 col-md-4">
     <div class="card h-100">
       <div class="card-body">
@@ -53,6 +55,43 @@
         <span class="step-number text-bg-primary mb-3">3</span>
         <h2 class="h5">Book and review</h2>
         <p class="card-text text-body-secondary">Accept a quote or book a free slot, then leave a review once the work is done.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<h2 class="qc-section-title h3">Why people trust QuickCraft</h2>
+<section class="row g-4 pb-2">
+  <div class="col-12 col-md-4">
+    <div class="qc-trust">
+      <span class="qc-trust-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      </span>
+      <div>
+        <h3>Verified tradespeople</h3>
+        <p class="text-body-secondary mb-0">An admin checks every tradesperson and each of their trades before they can see jobs or send quotes.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="qc-trust">
+      <span class="qc-trust-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>
+      </span>
+      <div>
+        <h3>Company names only</h3>
+        <p class="text-body-secondary mb-0">Profiles and search show the company name, trades and service area, never a tradesperson's phone number or address.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="qc-trust">
+      <span class="qc-trust-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      </span>
+      <div>
+        <h3>Your contact details stay private</h3>
+        <p class="text-body-secondary mb-0">Your phone number and address stay hidden from tradespeople until you accept their quote or book their slot, unless you choose to share your number in a message.</p>
       </div>
     </div>
   </div>

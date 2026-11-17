@@ -31,7 +31,7 @@
     <div class="card-body">
       <h2 class="h5">
         <a class="stretched-link text-decoration-none" href="{{ url_for('profiles.detail', profile_id=profile.id) }}">{{ profile.company_name }}</a>
-        <span class="badge text-bg-success ms-1">Verified</span>
+        <span class="badge badge-verified ms-1">Verified</span>
       </h2>
       <p class="text-body-secondary mb-0">
         {{ profile.approved_trades | join(", ") }} &middot; {{ profile.service_area }}
@@ -39,6 +39,6 @@
     </div>
   </div>
 {% else %}
-  <p class="text-body-secondary">No verified tradespeople match your search.</p>
+  <p class="empty-state">No verified tradespeople match your search.</p>
 {% endfor %}
 {% endblock %}
