@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Project | QuickCraft{% endblock %}
 {% block content %}
-<h1>{{ project.job.title }}</h1>
-<p class="text-muted">{{ project.job.city }} · shared project timeline</p>
+<h1 class="h3">{{ project.job.title }}</h1>
+<p class="text-body-secondary">{{ project.job.city }} · shared project timeline</p>
 
 <h2 class="h4 mt-4">Timeline</h2>
 {% if project.schedules %}
@@ -27,8 +27,8 @@
 {% endif %}
 
 <h2 class="h4">Comments</h2>
-{% for comment in project.comments %}<p><strong>{{ comment.author.name }}</strong>{% if comment.proposed_date %} ({{ comment.proposed_date|date_format }}){% endif %}: {{ comment.body }}</p>{% else %}<p>No comments yet.</p>{% endfor %}
-<form method="post" action="{{ url_for('projects.add_comment', project_id=project.id) }}">
+{% for comment in project.comments %}<p class="border rounded p-3 mb-2"><strong>{{ comment.author.name }}</strong>{% if comment.proposed_date %} ({{ comment.proposed_date|date_format }}){% endif %}: {{ comment.body }}</p>{% else %}<p class="text-body-secondary">No comments yet.</p>{% endfor %}
+<form class="mt-3" method="post" action="{{ url_for('projects.add_comment', project_id=project.id) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label class="form-label" for="body">Add a comment</label>
   <textarea class="form-control mb-2" id="body" name="body" required></textarea>

@@ -19,7 +19,7 @@
           <input type="hidden" name="slot_id" value="{{ slot.id }}">
           <input type="hidden" name="date" value="{{ start.date().isoformat() }}">
           <span>{{ start|date_format }}, {{ slot.start_time.strftime("%H:%M") }}&ndash;{{ slot.end_time.strftime("%H:%M") }}</span>
-          <button class="btn btn-primary btn-sm" type="submit">Book</button>
+          <button class="btn btn-outline-primary btn-sm" type="submit">Book</button>
         </form>
       {% endfor %}
     </div>

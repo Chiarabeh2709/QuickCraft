@@ -3,7 +3,8 @@
 {% block title %}No access | QuickCraft{% endblock %}
 
 {% block content %}
-<div class="py-5 text-center">
+<div class="qc-error-card">
+  <span class="qc-error-code" aria-hidden="true">403</span>
   <h1 class="h3">Access denied</h1>
   <p class="text-body-secondary">{{ message }}</p>
   <a class="btn btn-primary" href="{{ url_for('main.home') }}">Back to home</a>

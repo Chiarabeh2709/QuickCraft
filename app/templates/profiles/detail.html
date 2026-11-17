@@ -6,7 +6,7 @@
 {% block content %}
 <h1 class="h3">
   {{ profile.company_name }}
-  <span class="badge text-bg-success ms-1">Verified</span>
+  <span class="badge badge-verified ms-1">Verified</span>
 </h1>
 <p class="text-body-secondary">
   {% if profile.approved_trades %}{{ profile.approved_trades | join(", ") }} &middot; {% endif %}{{ profile.service_area }}
@@ -18,9 +18,9 @@
     <p class="mb-2">
       {{ entry.trade }}
       {% if entry.status == "pending" %}
-        <span class="badge text-bg-warning ms-1">waiting for approval</span>
+        <span class="badge status-badge status-pending ms-1">waiting for approval</span>
       {% else %}
-        <span class="badge text-bg-danger ms-1">rejected</span>
+        <span class="badge status-badge status-rejected ms-1">rejected</span>
       {% endif %}
     </p>
   {% endfor %}

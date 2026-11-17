@@ -14,7 +14,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start gap-2">
         <h2 class="h5"><a href="{{ url_for('jobs.my_job', job_id=job.id) }}">{{ job.title }}</a></h2>
-        <span class="badge text-bg-{{ 'success' if job.status == 'open' else 'secondary' }}">
+        <span class="badge status-badge status-{{ job.status }}">
           {{ job.status | replace("_", " ") | capitalize }}
         </span>
       </div>
@@ -69,6 +69,6 @@
     </div>
   </div>
 {% else %}
-  <p class="text-body-secondary">You have not posted a job yet.</p>
+  <p class="empty-state">You have not posted a job yet.</p>
 {% endfor %}
 {% endblock %}

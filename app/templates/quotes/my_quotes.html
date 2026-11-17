@@ -12,7 +12,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-start gap-2">
         <h2 class="h5">{{ job.title }}</h2>
-        <span class="badge text-bg-{{ {'accepted': 'success', 'rejected': 'secondary'}.get(quote.status, 'primary') }}">
+        <span class="badge status-badge status-{{ quote.status }}">
           {{ quote.status | capitalize }}
         </span>
       </div>
@@ -39,6 +39,6 @@
     </div>
   </div>
 {% else %}
-  <p class="text-body-secondary">You have not sent a quote yet.</p>
+  <p class="empty-state">You have not sent a quote yet.</p>
 {% endfor %}
 {% endblock %}

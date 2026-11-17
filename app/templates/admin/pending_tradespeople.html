@@ -33,7 +33,7 @@
     </div>
   </div>
 {% else %}
-  <p class="text-body-secondary">Nobody is waiting for approval.</p>
+  <p class="empty-state">Nobody is waiting for approval.</p>
 {% endfor %}
 
 <h2 class="h3 mt-5 mb-3">Pending trades</h2>
@@ -62,6 +62,6 @@
     </div>
   </div>
 {% else %}
-  <p class="text-body-secondary">No trades are waiting for approval.</p>
+  <p class="empty-state">No trades are waiting for approval.</p>
 {% endfor %}
 {% endblock %}
