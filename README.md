@@ -4,6 +4,21 @@ QuickCraft is a web marketplace for tradespeople. Customers post jobs or book a 
 
 Built with Python, Flask, Jinja, Bootstrap and SQLite as a course project.
 
+## Objectives
+
+Today a homeowner who needs a tradesperson phones around, waits for callbacks and cannot compare offers. Tradespeople, in turn, lose time on vague requests and customers who never commit. QuickCraft aims to fix both sides:
+
+- **Few steps**: get from request to appointment in a few clicks, in the clean, fast style of an online appointment booking service.
+- **Trust**: only tradespeople verified by the admin, and only their approved trades, see jobs, send quotes or appear in search.
+- **Comparable offers**: customers compare quotes by soonest start or by price, and book a free slot directly for small jobs.
+- **Bigger jobs**: tradespeople on a job with several trades plan together on a shared project page.
+- **Privacy**: collect only the data the service needs and keep the customer's contact details hidden until they choose a tradesperson.
+- **Ready to demo**: deployed at a public URL with seed data, so every feature can be shown without entering data first.
+
+Out of scope for the first release: payments, invoices, real emails, ID or document uploads, distance search, mobile apps and calendar integrations.
+
+The full product brief with all capabilities, business rules and acceptance criteria is in [docs/QuickCraft_OnePager.pdf](docs/QuickCraft_OnePager.pdf).
+
 ## Live demo
 
 https://quickcraft-nc18.onrender.com/
