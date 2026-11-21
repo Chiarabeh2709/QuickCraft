@@ -13,6 +13,16 @@ https://quickcraft-nc18.onrender.com/
 
 The demo logins and a click path for the presentation are in [DEMO.md](DEMO.md).
 
+## Source code
+
+https://github.com/Chiarabeh2709/QuickCraft
+
+Clone it with:
+
+```bash
+git clone https://github.com/Chiarabeh2709/QuickCraft.git
+```
+
 ## Team
 
 | Name | Student number |
@@ -37,7 +47,7 @@ The demo logins and a click path for the presentation are in [DEMO.md](DEMO.md).
 
 ## Run locally
 
-You need Python 3.12. Run these commands in the repository root.
+You need Python 3.12. Clone the repository (see [Source code](#source-code)) and run these commands in the repository root.
 
 Create and activate a virtual environment (macOS and Linux):
 
