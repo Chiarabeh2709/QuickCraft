@@ -155,3 +155,4 @@ One worker on purpose, because SQLite handles one writer at a time. The full ste
 - No service radius: jobs and tradespeople are matched on the exact city name from the tradesperson's service area.
 - The free Render plan deletes the database on every restart, redeploy and spin-down.
 - No real emails are sent, for confirmation or for anything else.
+- Booking starts from a job: a customer books a slot for one of their own small jobs. A tradesperson's public profile shows their availability but cannot be booked directly yet. A possible next step is a "Book this slot" link on the profile where the customer picks one of their matching jobs, without a model change.
